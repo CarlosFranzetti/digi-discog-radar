@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SearchBar } from "@/components/SearchBar";
 import { SearchFilters } from "@/components/SearchFilters";
 import { ReleaseCard } from "@/components/ReleaseCard";
+import { ReleaseDetailsDialog } from "@/components/ReleaseDetailsDialog";
 import { discogsService, DiscogsSearchParams } from "@/services/discogsService";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Disc3 } from "lucide-react";
@@ -22,6 +23,8 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [filters, setFilters] = useState<FilterValues>({});
+  const [selectedReleaseId, setSelectedReleaseId] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['discogs-search', searchQuery, filters, searchTrigger],
@@ -66,6 +69,17 @@ const Index = () => {
 
   const handleFilterChange = (newFilters: FilterValues) => {
     setFilters(newFilters);
+  };
+
+  const { data: releaseDetails, isLoading: isLoadingDetails } = useQuery({
+    queryKey: ['release-details', selectedReleaseId],
+    queryFn: () => discogsService.getRelease(selectedReleaseId!),
+    enabled: selectedReleaseId !== null && dialogOpen,
+  });
+
+  const handleReleaseClick = (releaseId: number) => {
+    setSelectedReleaseId(releaseId);
+    setDialogOpen(true);
   };
 
   return (
@@ -131,12 +145,7 @@ const Index = () => {
                 <ReleaseCard
                   key={release.id}
                   release={release}
-                  onClick={() => {
-                    toast({
-                      title: release.title,
-                      description: `${release.label?.[0] || 'Unknown Label'} • ${release.year || 'Year Unknown'}`,
-                    });
-                  }}
+                  onClick={() => handleReleaseClick(release.id)}
                 />
               ))}
             </div>
@@ -156,6 +165,12 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      <ReleaseDetailsDialog
+        release={releaseDetails}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 };
