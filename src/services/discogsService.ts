@@ -1,6 +1,6 @@
 const DISCOGS_API_URL = 'https://api.discogs.com';
-const DISCOGS_KEY = 'WyvlrHLzJBaQrTPOuNNO';
-const DISCOGS_SECRET = 'JIxaEYIQpQWKIuigSbPIZZJNLptBTSHX';
+const DISCOGS_KEY = 'TCKkHBBZVAFGQiWswBiG';
+const DISCOGS_SECRET = 'uZywLaQCmTNPKPNATAcFduIyxAlltHba';
 
 export interface DiscogsSearchParams {
   query?: string;
