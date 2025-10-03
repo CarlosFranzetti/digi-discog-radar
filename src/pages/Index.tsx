@@ -32,7 +32,6 @@ interface FilterValues {
   artist?: string;
   format?: string;
   country?: string;
-  perPage?: string;
 }
 
 const Index = () => {
@@ -45,9 +44,10 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<'year' | 'title' | 'artist'>('year');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [perPage, setPerPage] = useState(160);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['discogs-search', searchQuery, filters, searchTrigger, currentPage, sortBy, sortOrder],
+    queryKey: ['discogs-search', searchQuery, filters, searchTrigger, currentPage, sortBy, sortOrder, perPage],
     queryFn: async () => {
       if (!searchQuery && !Object.keys(filters).length) {
         return null;
@@ -63,7 +63,7 @@ const Index = () => {
         format: filters.format,
         country: filters.country,
         page: currentPage,
-        per_page: filters.perPage ? parseInt(filters.perPage) : 25,
+        per_page: perPage,
         sort: sortBy,
         sort_order: sortOrder,
       };
@@ -163,20 +163,32 @@ const Index = () => {
 
         {!isLoading && !error && data?.results && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-card/30 backdrop-blur-sm rounded-lg p-4 border border-border/50">
               <div className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">
-                  Found {data.pagination.items.toLocaleString()} results
+                <p className="text-sm font-medium">
+                  {data.pagination.items.toLocaleString()} results
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Page {data.pagination.page} of {data.pagination.pages}
                 </p>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={perPage.toString()} onValueChange={(value) => { setPerPage(parseInt(value)); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="160">160</SelectItem>
+                  </SelectContent>
+                </Select>
+                
                 <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Sort by" />
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="year">Year</SelectItem>
@@ -186,12 +198,12 @@ const Index = () => {
                 </Select>
                 
                 <Select value={sortOrder} onValueChange={(value: any) => setSortOrder(value)}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Order" />
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="asc">Ascending</SelectItem>
-                    <SelectItem value="desc">Descending</SelectItem>
+                    <SelectItem value="asc">Asc</SelectItem>
+                    <SelectItem value="desc">Desc</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
