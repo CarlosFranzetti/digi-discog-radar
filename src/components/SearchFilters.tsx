@@ -70,7 +70,18 @@ export const SearchFilters = ({ filters, onChange }: SearchFiltersProps) => {
           <CardHeader>
             <CardTitle className="text-lg">Filter Results</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-2.5">
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                placeholder="US, UK, Germany..."
+                value={filters.country || ''}
+                onChange={(e) => updateFilter('country', e.target.value)}
+                className="bg-background/50"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="yearFrom">Year From</Label>
@@ -121,50 +132,37 @@ export const SearchFilters = ({ filters, onChange }: SearchFiltersProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="label">Label</Label>
-                <Input
-                  id="label"
-                  placeholder="Record label name"
-                  value={filters.label || ''}
-                  onChange={(e) => updateFilter('label', e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="label">Label</Label>
+              <Input
+                id="label"
+                placeholder="Record label name"
+                value={filters.label || ''}
+                onChange={(e) => updateFilter('label', e.target.value)}
+                className="bg-background/50"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="artist">Artist</Label>
-                <Input
-                  id="artist"
-                  placeholder="Artist name"
-                  value={filters.artist || ''}
-                  onChange={(e) => updateFilter('artist', e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="artist">Artist</Label>
+              <Input
+                id="artist"
+                placeholder="Artist name"
+                value={filters.artist || ''}
+                onChange={(e) => updateFilter('artist', e.target.value)}
+                className="bg-background/50"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="format">Format</Label>
-                <Input
-                  id="format"
-                  placeholder="Vinyl, CD, Cassette..."
-                  value={filters.format || ''}
-                  onChange={(e) => updateFilter('format', e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  placeholder="US, UK, Germany..."
-                  value={filters.country || ''}
-                  onChange={(e) => updateFilter('country', e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="format">Format</Label>
+              <Input
+                id="format"
+                placeholder="Vinyl, CD, Cassette..."
+                value={filters.format || ''}
+                onChange={(e) => updateFilter('format', e.target.value)}
+                className="bg-background/50"
+              />
             </div>
           </CardContent>
         </Card>
