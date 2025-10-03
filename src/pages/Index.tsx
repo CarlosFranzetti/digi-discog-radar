@@ -44,7 +44,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<'year' | 'title' | 'artist'>('year');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [perPage, setPerPage] = useState(160);
+  const [perPage, setPerPage] = useState(200);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['discogs-search', searchQuery, filters, searchTrigger, currentPage, sortBy, sortOrder, perPage],
@@ -179,10 +179,10 @@ const Index = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
                     <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="160">160</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="300">300</SelectItem>
+                    <SelectItem value="400">400</SelectItem>
                   </SelectContent>
                 </Select>
                 
