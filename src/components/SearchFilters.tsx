@@ -13,6 +13,8 @@ interface FilterValues {
   label?: string;
   artist?: string;
   format?: string;
+  country?: string;
+  perPage?: string;
 }
 
 interface SearchFiltersProps {
@@ -138,13 +140,36 @@ export const SearchFilters = ({ filters, onChange }: SearchFiltersProps) => {
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2 lg:col-span-3">
+            <div className="space-y-2">
               <Label htmlFor="format">Format</Label>
               <Input
                 id="format"
                 placeholder="Vinyl, CD, Cassette..."
                 value={filters.format || ''}
                 onChange={(e) => updateFilter('format', e.target.value)}
+                className="bg-background/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                placeholder="US, UK, Germany..."
+                value={filters.country || ''}
+                onChange={(e) => updateFilter('country', e.target.value)}
+                className="bg-background/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="perPage">Results Per Page</Label>
+              <Input
+                id="perPage"
+                type="number"
+                placeholder="25"
+                value={filters.perPage || ''}
+                onChange={(e) => updateFilter('perPage', e.target.value)}
                 className="bg-background/50"
               />
             </div>

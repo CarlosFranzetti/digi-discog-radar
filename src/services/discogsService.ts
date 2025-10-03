@@ -14,6 +14,8 @@ export interface DiscogsSearchParams {
   country?: string;
   page?: number;
   per_page?: number;
+  sort?: 'year' | 'title' | 'artist';
+  sort_order?: 'asc' | 'desc';
 }
 
 export interface DiscogsRelease {
@@ -66,6 +68,8 @@ export const discogsService = {
     if (params.artist) queryParams.append('artist', params.artist);
     if (params.format) queryParams.append('format', params.format);
     if (params.country) queryParams.append('country', params.country);
+    if (params.sort) queryParams.append('sort', params.sort);
+    if (params.sort_order) queryParams.append('sort_order', params.sort_order);
     
     queryParams.append('page', String(params.page || 1));
     queryParams.append('per_page', String(params.per_page || 25));

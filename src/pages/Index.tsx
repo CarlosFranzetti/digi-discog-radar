@@ -7,6 +7,21 @@ import { ReleaseDetailsDialog } from "@/components/ReleaseDetailsDialog";
 import { discogsService, DiscogsSearchParams } from "@/services/discogsService";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Disc3 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface FilterValues {
   yearFrom?: string;
@@ -16,6 +31,8 @@ interface FilterValues {
   label?: string;
   artist?: string;
   format?: string;
+  country?: string;
+  perPage?: string;
 }
 
 const Index = () => {
@@ -25,9 +42,12 @@ const Index = () => {
   const [filters, setFilters] = useState<FilterValues>({});
   const [selectedReleaseId, setSelectedReleaseId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'year' | 'title' | 'artist'>('year');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['discogs-search', searchQuery, filters, searchTrigger],
+    queryKey: ['discogs-search', searchQuery, filters, searchTrigger, currentPage, sortBy, sortOrder],
     queryFn: async () => {
       if (!searchQuery && !Object.keys(filters).length) {
         return null;
@@ -41,6 +61,11 @@ const Index = () => {
         label: filters.label,
         artist: filters.artist,
         format: filters.format,
+        country: filters.country,
+        page: currentPage,
+        per_page: filters.perPage ? parseInt(filters.perPage) : 25,
+        sort: sortBy,
+        sort_order: sortOrder,
       };
 
       // Handle year range
@@ -64,11 +89,18 @@ const Index = () => {
       });
       return;
     }
+    setCurrentPage(1);
     setSearchTrigger(prev => prev + 1);
   };
 
   const handleFilterChange = (newFilters: FilterValues) => {
     setFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const { data: releaseDetails, isLoading: isLoadingDetails } = useQuery({
@@ -131,14 +163,84 @@ const Index = () => {
 
         {!isLoading && !error && data?.results && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Found {data.pagination.items.toLocaleString()} results
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Page {data.pagination.page} of {data.pagination.pages}
-              </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-muted-foreground">
+                  Found {data.pagination.items.toLocaleString()} results
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Page {data.pagination.page} of {data.pagination.pages}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="year">Year</SelectItem>
+                    <SelectItem value="title">Title</SelectItem>
+                    <SelectItem value="artist">Artist</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortOrder} onValueChange={(value: any) => setSortOrder(value)}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            {data.pagination.pages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.min(5, data.pagination.pages) }, (_, i) => {
+                    let pageNum;
+                    if (data.pagination.pages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= data.pagination.pages - 2) {
+                      pageNum = data.pagination.pages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={currentPage === pageNum}
+                          className="cursor-pointer"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage === data.pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {data.results.map((release) => (
@@ -149,6 +251,51 @@ const Index = () => {
                 />
               ))}
             </div>
+
+            {data.pagination.pages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.min(5, data.pagination.pages) }, (_, i) => {
+                    let pageNum;
+                    if (data.pagination.pages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= data.pagination.pages - 2) {
+                      pageNum = data.pagination.pages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={currentPage === pageNum}
+                          className="cursor-pointer"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage === data.pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
         )}
 
