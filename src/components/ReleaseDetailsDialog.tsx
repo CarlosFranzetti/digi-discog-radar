@@ -2,7 +2,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Music, Calendar, Globe, Tag, Disc, Building2, Hash, Barcode } from "lucide-react";
+import { Music, Calendar, Globe, Tag, Disc, Building2, Hash, Barcode, Play, Pause, Video } from "lucide-react";
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
 
 interface ReleaseDetails {
   id: number;
@@ -20,6 +22,7 @@ interface ReleaseDetails {
   notes?: string;
   identifiers?: Array<{ type: string; value: string }>;
   companies?: Array<{ name: string; entity_type_name: string }>;
+  videos?: Array<{ uri: string; title: string; duration: number }>;
 }
 
 interface ReleaseDetailsDialogProps {
@@ -29,9 +32,66 @@ interface ReleaseDetailsDialogProps {
 }
 
 export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDetailsDialogProps) => {
+  const [playingTrack, setPlayingTrack] = useState<number | null>(null);
+  const [trackPreviews, setTrackPreviews] = useState<Record<number, string>>({});
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   if (!release) return null;
 
   const mainImage = release.images?.find(img => img.type === 'primary')?.uri || release.images?.[0]?.uri;
+
+  const searchAppleMusicPreview = async (trackTitle: string, artistName: string) => {
+    try {
+      const searchQuery = encodeURIComponent(`${trackTitle} ${artistName}`);
+      const response = await fetch(`https://itunes.apple.com/search?term=${searchQuery}&media=music&limit=1`);
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        return data.results[0].previewUrl;
+      }
+    } catch (error) {
+      console.error('Error fetching Apple Music preview:', error);
+    }
+    return null;
+  };
+
+  const handleTrackClick = async (trackIndex: number) => {
+    const track = release.tracklist?.[trackIndex];
+    if (!track) return;
+
+    if (playingTrack === trackIndex) {
+      audioRef.current?.pause();
+      setPlayingTrack(null);
+      return;
+    }
+
+    if (!trackPreviews[trackIndex]) {
+      const artistName = release.artists?.[0]?.name || '';
+      const previewUrl = await searchAppleMusicPreview(track.title, artistName);
+      
+      if (previewUrl) {
+        setTrackPreviews(prev => ({ ...prev, [trackIndex]: previewUrl }));
+        
+        if (audioRef.current) {
+          audioRef.current.src = previewUrl;
+          audioRef.current.play();
+        }
+        setPlayingTrack(trackIndex);
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.src = trackPreviews[trackIndex];
+        audioRef.current.play();
+      }
+      setPlayingTrack(trackIndex);
+    }
+  };
+
+  const getYouTubeVideoId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -173,16 +233,61 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                 </div>
                 <div className="space-y-1">
                   {release.tracklist.map((track, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-sm py-1 hover:bg-accent/50 px-2 rounded">
+                    <div 
+                      key={idx} 
+                      className="flex items-center justify-between text-sm py-1 hover:bg-accent/50 px-2 rounded cursor-pointer transition-colors"
+                      onClick={() => handleTrackClick(idx)}
+                    >
                       <div className="flex items-center gap-3">
                         <span className="text-muted-foreground w-8 text-right">{track.position}</span>
-                        <span>{track.title}</span>
+                        {playingTrack === idx ? (
+                          <Pause className="h-3 w-3 text-primary" />
+                        ) : (
+                          <Play className="h-3 w-3 text-muted-foreground" />
+                        )}
+                        <span className={playingTrack === idx ? "text-primary font-medium" : ""}>{track.title}</span>
                       </div>
                       {track.duration && (
                         <span className="text-muted-foreground">{track.duration}</span>
                       )}
                     </div>
                   ))}
+                </div>
+                <audio 
+                  ref={audioRef} 
+                  onEnded={() => setPlayingTrack(null)}
+                  className="hidden"
+                />
+              </div>
+            )}
+
+            {/* Videos */}
+            {release.videos && release.videos.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Video className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold">Videos</h3>
+                </div>
+                <div className="space-y-3">
+                  {release.videos.map((video, idx) => {
+                    const videoId = getYouTubeVideoId(video.uri);
+                    if (!videoId) return null;
+                    
+                    return (
+                      <div key={idx} className="space-y-2">
+                        <p className="text-sm font-medium">{video.title}</p>
+                        <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-secondary">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0`}
+                            title={video.title}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 w-full h-full"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
