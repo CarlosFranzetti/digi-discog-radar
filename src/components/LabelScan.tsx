@@ -72,7 +72,7 @@ export const LabelScan = () => {
           Label Scan
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 z-[100]" align="end">
+      <PopoverContent className="w-80 z-[100] bg-popover" align="end" sideOffset={8}>
         <div className="space-y-4">
           <div>
             <h3 className="font-semibold mb-1">Label Scan</h3>
@@ -121,7 +121,7 @@ export const LabelScan = () => {
                 <SelectTrigger id="genre">
                   <SelectValue placeholder="Select genre" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[150]">
                   {GENRES.map((g) => (
                     <SelectItem key={g} value={g}>
                       {g}
@@ -137,7 +137,7 @@ export const LabelScan = () => {
                 <SelectTrigger id="releaseLimit">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[150]">
                   <SelectItem value="25">25</SelectItem>
                   <SelectItem value="50">50</SelectItem>
                   <SelectItem value="100">100</SelectItem>
