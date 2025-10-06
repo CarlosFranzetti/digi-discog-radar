@@ -142,6 +142,7 @@ const Index = () => {
             <SearchFilters
               filters={filters}
               onChange={handleFilterChange}
+              onSearch={handleSearch}
             />
           </div>
         </div>

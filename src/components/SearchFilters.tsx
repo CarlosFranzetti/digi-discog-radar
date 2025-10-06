@@ -19,9 +19,10 @@ interface FilterValues {
 interface SearchFiltersProps {
   filters: FilterValues;
   onChange: (filters: FilterValues) => void;
+  onSearch: () => void;
 }
 
-export const SearchFilters = ({ filters, onChange }: SearchFiltersProps) => {
+export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const updateFilter = (key: keyof FilterValues, value: string) => {
@@ -68,7 +69,12 @@ export const SearchFilters = ({ filters, onChange }: SearchFiltersProps) => {
       {isExpanded && (
         <Card className="bg-card/50 backdrop-blur-md border-border/50">
           <CardHeader>
-            <CardTitle className="text-lg">Filter Results</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Filter Results</CardTitle>
+              <Button onClick={onSearch} size="sm">
+                Search
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2.5">
             <div className="space-y-2">
