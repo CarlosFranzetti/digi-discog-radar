@@ -39,7 +39,7 @@ const GENRES = [
   "Tech House",
   "Techno",
   "Trance"
-];
+].sort((a, b) => a.localeCompare(b));
 
 export const LabelScan = () => {
   const { toast } = useToast();
@@ -59,8 +59,8 @@ export const LabelScan = () => {
     queryFn: async () => {
       // Build search query - prioritize "similar to" field if provided
       let searchQuery = similarTo || '';
-      
-      // Search for releases with flexible filtering
+
+      // Build base search (broad) and filter client-side for flexibility
       const searchParams: any = {
         type: 'release',
         per_page: 100,
@@ -69,53 +69,114 @@ export const LabelScan = () => {
       if (searchQuery) {
         searchParams.query = searchQuery;
       }
-      
+
       if (country) {
         searchParams.country = country;
       }
-      
-      // If genre is selected, search for it broadly (will match partial genres)
-      if (genre) {
-        searchParams.genre = genre;
+
+      // Do NOT pass genre/year to API directly to avoid over-restricting; filter client-side instead
+      const searchResponse = await discogsService.search(searchParams);
+      const releases: any[] = searchResponse?.results || [];
+
+      const term = (genre || '').toLowerCase().trim();
+      const fromYear = yearFrom ? parseInt(yearFrom, 10) : undefined;
+      const toYear = yearTo ? parseInt(yearTo, 10) : undefined;
+
+      const matchesGenre = (r: any) => {
+        if (!term) return true;
+        const styles: string[] = Array.isArray(r.style) ? r.style : [];
+        const genres: string[] = Array.isArray(r.genre) ? r.genre : [];
+        const all = [...styles, ...genres].map((s) => (s || '').toLowerCase());
+        // substring match so "house" matches "tech house", "acid" matches "acid house", etc.
+        return all.some((g) => g.includes(term));
+      };
+
+      const matchesYear = (r: any) => {
+        if (!fromYear && !toYear) return true;
+        const y = typeof r.year === 'number' ? r.year : parseInt(String(r.year || ''), 10);
+        if (Number.isNaN(y)) return false;
+        if (fromYear && y < fromYear) return false;
+        if (toYear && y > toYear) return false;
+        return true;
+      };
+
+      const matchesCountry = (r: any) => {
+        if (!country) return true;
+        return String(r.country || '').toLowerCase() === country.toLowerCase();
+      };
+
+      // Primary filtered set; if empty, fall back to unfiltered to provide closest results
+      let filtered = releases.filter((r) => matchesGenre(r) && matchesYear(r) && matchesCountry(r));
+      if (filtered.length === 0) {
+        filtered = releases; // provide closest available matches
       }
 
-      if (yearFrom || yearTo) {
-        const from = yearFrom || '1900';
-        const to = yearTo || new Date().getFullYear().toString();
-        searchParams.year = `${from}-${to}`;
-      }
-
-      const results = await discogsService.search(searchParams);
-      
-      // Extract unique labels from releases with release counts
+      // Extract unique labels and count matched releases
       const labelMap = new Map<string, any>();
-      
-      results.results.forEach((release: any) => {
-        if (release.label && release.label.length > 0) {
-          release.label.forEach((labelName: string) => {
-            if (labelMap.has(labelName)) {
-              // Increment release count for this label
-              const existing = labelMap.get(labelName);
-              existing.releaseCount = (existing.releaseCount || 1) + 1;
-            } else {
-              labelMap.set(labelName, {
-                id: `label-${labelMap.size}`,
-                title: labelName,
-                thumb: release.thumb || release.cover_image,
-                country: release.country,
-                resource_url: release.resource_url,
-                releaseCount: 1,
-              });
+      filtered.forEach((release: any) => {
+        const labels: string[] = Array.isArray(release.label) ? release.label : (release.label ? [release.label] : []);
+        labels.forEach((labelName: string) => {
+          const existing = labelMap.get(labelName);
+          if (existing) {
+            existing.matchedCount = (existing.matchedCount || 0) + 1;
+            // prefer first available thumb, keep existing if already set
+            if (!existing.thumb && (release.thumb || release.cover_image)) {
+              existing.thumb = release.thumb || release.cover_image;
             }
-          });
-        }
+            // Keep a country if not already set
+            if (!existing.country && release.country) {
+              existing.country = release.country;
+            }
+          } else {
+            labelMap.set(labelName, {
+              id: `label-${labelMap.size}`,
+              title: labelName,
+              thumb: release.thumb || release.cover_image,
+              country: release.country,
+              resource_url: release.resource_url,
+              matchedCount: 1,
+            });
+          }
+        });
       });
 
-      // Convert to array and sort by release count
-      const uniqueLabels = Array.from(labelMap.values())
-        .sort((a, b) => (b.releaseCount || 0) - (a.releaseCount || 0))
-        .slice(0, parseInt(releaseLimit));
-      
+      let labels = Array.from(labelMap.values());
+
+      // If we still have no labels, return empty response early
+      if (labels.length === 0) {
+        return {
+          results: [],
+          pagination: { page: 1, pages: 1, per_page: 0, items: 0, urls: {} },
+        };
+      }
+
+      // Get approximate TOTAL release counts per label for the top N labels to respect rate limits
+      const limit = parseInt(releaseLimit);
+      labels.sort((a, b) => (b.matchedCount || 0) - (a.matchedCount || 0));
+      const topForCounting = labels.slice(0, Math.min(limit, 25));
+
+      try {
+        const counts = await Promise.all(
+          topForCounting.map(async (l: any) => {
+            const resp = await discogsService.search({ type: 'release', label: l.title, per_page: 1 });
+            return { title: l.title, total: resp?.pagination?.items || l.matchedCount };
+          })
+        );
+        const totalMap = new Map(counts.map((c) => [c.title, c.total]));
+        labels = labels.map((l: any) => ({
+          ...l,
+          releaseCount: totalMap.get(l.title) ?? l.matchedCount,
+        }));
+      } catch {
+        // Fallback to matchedCount if counting fails
+        labels = labels.map((l: any) => ({ ...l, releaseCount: l.matchedCount }));
+      }
+
+      // Final sort by total releases desc, then by matchedCount desc
+      const uniqueLabels = labels
+        .sort((a: any, b: any) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0))
+        .slice(0, limit);
+
       return {
         results: uniqueLabels,
         pagination: {
@@ -123,8 +184,8 @@ export const LabelScan = () => {
           pages: 1,
           per_page: uniqueLabels.length,
           items: uniqueLabels.length,
-          urls: {}
-        }
+          urls: {},
+        },
       };
     },
     enabled: searchTrigger > 0,
