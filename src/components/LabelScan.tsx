@@ -47,6 +47,7 @@ export const LabelScan = () => {
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   const [genre, setGenre] = useState("");
+  const [similarTo, setSimilarTo] = useState("");
   const [releaseLimit, setReleaseLimit] = useState("50");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
@@ -54,15 +55,29 @@ export const LabelScan = () => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const { data: labelResults, isLoading } = useQuery({
-    queryKey: ['label-scan', country, yearFrom, yearTo, genre, releaseLimit, searchTrigger],
+    queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, releaseLimit, searchTrigger],
     queryFn: async () => {
-      // Search for releases with the filters, then extract unique labels
+      // Build search query - prioritize "similar to" field if provided
+      let searchQuery = similarTo || '';
+      
+      // Search for releases with flexible filtering
       const searchParams: any = {
         type: 'release',
-        country: country || undefined,
-        genre: genre || undefined,
-        per_page: 100, // Get more releases to extract labels from
+        per_page: 100,
       };
+
+      if (searchQuery) {
+        searchParams.query = searchQuery;
+      }
+      
+      if (country) {
+        searchParams.country = country;
+      }
+      
+      // If genre is selected, search for it broadly (will match partial genres)
+      if (genre) {
+        searchParams.genre = genre;
+      }
 
       if (yearFrom || yearTo) {
         const from = yearFrom || '1900';
@@ -72,25 +87,34 @@ export const LabelScan = () => {
 
       const results = await discogsService.search(searchParams);
       
-      // Extract unique labels from releases
-      const labelMap = new Map();
+      // Extract unique labels from releases with release counts
+      const labelMap = new Map<string, any>();
+      
       results.results.forEach((release: any) => {
         if (release.label && release.label.length > 0) {
           release.label.forEach((labelName: string) => {
-            if (!labelMap.has(labelName)) {
+            if (labelMap.has(labelName)) {
+              // Increment release count for this label
+              const existing = labelMap.get(labelName);
+              existing.releaseCount = (existing.releaseCount || 1) + 1;
+            } else {
               labelMap.set(labelName, {
                 id: `label-${labelMap.size}`,
                 title: labelName,
                 thumb: release.thumb || release.cover_image,
                 country: release.country,
                 resource_url: release.resource_url,
+                releaseCount: 1,
               });
             }
           });
         }
       });
 
-      const uniqueLabels = Array.from(labelMap.values()).slice(0, parseInt(releaseLimit));
+      // Convert to array and sort by release count
+      const uniqueLabels = Array.from(labelMap.values())
+        .sort((a, b) => (b.releaseCount || 0) - (a.releaseCount || 0))
+        .slice(0, parseInt(releaseLimit));
       
       return {
         results: uniqueLabels,
@@ -124,10 +148,10 @@ export const LabelScan = () => {
   });
 
   const handleScan = () => {
-    if (!country && !genre && !yearFrom && !yearTo) {
+    if (!country && !genre && !yearFrom && !yearTo && !similarTo) {
       toast({
         title: "Filters required",
-        description: "Please select at least one filter",
+        description: "Please enter at least one filter or a label name to find similar labels",
         variant: "destructive",
       });
       return;
@@ -164,6 +188,19 @@ export const LabelScan = () => {
 
             <div className="space-y-3">
               <div className="space-y-1.5">
+                <Label htmlFor="similarTo">Similar To (Label Name)</Label>
+                <Input
+                  id="similarTo"
+                  placeholder="e.g., Drumcode, Anjunabeats"
+                  value={similarTo}
+                  onChange={(e) => setSimilarTo(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Find labels similar to this one
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
                 <Label htmlFor="country">Country</Label>
                 <Input
                   id="country"
@@ -197,12 +234,13 @@ export const LabelScan = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="genre">Genre</Label>
+                <Label htmlFor="genre">Genre (Optional)</Label>
                 <Select value={genre} onValueChange={setGenre}>
                   <SelectTrigger id="genre">
-                    <SelectValue placeholder="Select genre" />
+                    <SelectValue placeholder="All genres" />
                   </SelectTrigger>
                   <SelectContent className="z-[150]">
+                    <SelectItem value="">All genres</SelectItem>
                     {GENRES.map((g) => (
                       <SelectItem key={g} value={g}>
                         {g}
@@ -213,7 +251,7 @@ export const LabelScan = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="releaseLimit">Release Limit</Label>
+                <Label htmlFor="releaseLimit">Max Labels</Label>
                 <Select value={releaseLimit} onValueChange={setReleaseLimit}>
                   <SelectTrigger id="releaseLimit">
                     <SelectValue />

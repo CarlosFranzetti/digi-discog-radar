@@ -1,13 +1,15 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface LabelCardProps {
   label: {
-    id: number;
+    id: number | string;
     title: string;
     thumb?: string;
     country?: string;
     resource_url?: string;
+    releaseCount?: number;
   };
   onClick?: () => void;
 }
@@ -32,6 +34,11 @@ export const LabelCard = ({ label, onClick }: LabelCardProps) => {
           <div className="w-full h-full flex items-center justify-center">
             <Building2 className="h-16 w-16 text-muted-foreground" />
           </div>
+        )}
+        {label.releaseCount && (
+          <Badge className="absolute top-2 right-2 bg-primary/90">
+            {label.releaseCount} releases
+          </Badge>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
