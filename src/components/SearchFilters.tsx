@@ -71,7 +71,7 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Filter Results</CardTitle>
-              <Button onClick={() => { onSearch(); setIsExpanded(false); }} size="sm">
+              <Button onClick={onSearch} size="sm">
                 Search
               </Button>
             </div>
