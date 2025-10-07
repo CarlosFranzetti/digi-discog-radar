@@ -29,16 +29,16 @@ import { discogsService } from "@/services/discogsService";
 import { useToast } from "@/hooks/use-toast";
 
 const GENRES = [
-  "House",
-  "Deep House",
-  "Techno",
-  "Tech House",
-  "Breakbeat",
-  "Progressive House",
-  "Trance",
-  "Acid House",
   "Acid",
-  "Progressive Breaks"
+  "Acid House",
+  "Breakbeat",
+  "Deep House",
+  "House",
+  "Progressive Breaks",
+  "Progressive House",
+  "Tech House",
+  "Techno",
+  "Trance"
 ];
 
 export const LabelScan = () => {
@@ -56,11 +56,12 @@ export const LabelScan = () => {
   const { data: labelResults, isLoading } = useQuery({
     queryKey: ['label-scan', country, yearFrom, yearTo, genre, releaseLimit, searchTrigger],
     queryFn: async () => {
+      // Search for releases with the filters, then extract unique labels
       const searchParams: any = {
-        type: 'label',
+        type: 'release',
         country: country || undefined,
         genre: genre || undefined,
-        per_page: parseInt(releaseLimit),
+        per_page: 100, // Get more releases to extract labels from
       };
 
       if (yearFrom || yearTo) {
@@ -69,7 +70,38 @@ export const LabelScan = () => {
         searchParams.year = `${from}-${to}`;
       }
 
-      return discogsService.search(searchParams);
+      const results = await discogsService.search(searchParams);
+      
+      // Extract unique labels from releases
+      const labelMap = new Map();
+      results.results.forEach((release: any) => {
+        if (release.label && release.label.length > 0) {
+          release.label.forEach((labelName: string) => {
+            if (!labelMap.has(labelName)) {
+              labelMap.set(labelName, {
+                id: `label-${labelMap.size}`,
+                title: labelName,
+                thumb: release.thumb || release.cover_image,
+                country: release.country,
+                resource_url: release.resource_url,
+              });
+            }
+          });
+        }
+      });
+
+      const uniqueLabels = Array.from(labelMap.values()).slice(0, parseInt(releaseLimit));
+      
+      return {
+        results: uniqueLabels,
+        pagination: {
+          page: 1,
+          pages: 1,
+          per_page: uniqueLabels.length,
+          items: uniqueLabels.length,
+          urls: {}
+        }
+      };
     },
     enabled: searchTrigger > 0,
   });
