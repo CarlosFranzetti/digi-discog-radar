@@ -121,16 +121,24 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border/50 backdrop-blur-lg bg-background/80 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Disc3 className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Disc3 className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Discogs Explorer
+                </h1>
+                <p className="text-sm text-muted-foreground">Discover and explore music</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Discogs Explorer
-              </h1>
-              <p className="text-sm text-muted-foreground">Discover and explore music</p>
-            </div>
+            <Link to="/label-scan">
+              <Button variant="outline" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                Label Scan
+              </Button>
+            </Link>
           </div>
           
           <div className="space-y-4">
@@ -146,15 +154,6 @@ const Index = () => {
               onChange={handleFilterChange}
               onSearch={handleSearch}
             />
-            
-            <div className="flex justify-center">
-              <Link to="/label-scan">
-                <Button variant="outline" className="gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Label Scan
-                </Button>
-              </Link>
-            </div>
           </div>
         </div>
       </header>

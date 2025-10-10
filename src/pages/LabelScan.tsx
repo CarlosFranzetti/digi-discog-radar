@@ -17,23 +17,32 @@ import {
 import { Loader2, Search, Building2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const GENRES = [
-  "All Genres",
-  "Blues",
-  "Brass & Military",
-  "Children's",
-  "Classical",
-  "Electronic",
-  "Folk, World, & Country",
-  "Funk / Soul",
-  "Hip Hop",
-  "Jazz",
-  "Latin",
-  "Non-Music",
-  "Pop",
-  "Reggae",
-  "Rock",
-  "Stage & Screen"
+const STYLES = [
+  "All Styles",
+  "Abstract",
+  "Acid",
+  "Ambient",
+  "Breakbeat",
+  "Dance",
+  "Deep House",
+  "Disco",
+  "Downtempo",
+  "Drum n Bass",
+  "Dubstep",
+  "Electro",
+  "Experimental",
+  "Garage House",
+  "Grime",
+  "Hardstyle",
+  "House",
+  "IDM",
+  "Jungle",
+  "Minimal",
+  "Progressive House",
+  "Techno",
+  "Tech House",
+  "Trance",
+  "Trip Hop"
 ].sort();
 
 interface LabelResult {
@@ -48,15 +57,15 @@ interface LabelScanFilters {
   country?: string;
   yearFrom?: string;
   yearTo?: string;
-  genre?: string;
+  style?: string;
   similarTo?: string;
-  maxLabels: number;
+  maxReleasesPerLabel: number;
 }
 
 const LabelScan = () => {
   const { toast } = useToast();
   const [filters, setFilters] = useState<LabelScanFilters>({
-    maxLabels: 50,
+    maxReleasesPerLabel: 50,
   });
   const [searchTrigger, setSearchTrigger] = useState(0);
 
@@ -76,7 +85,7 @@ const LabelScan = () => {
   const { data: labelResults, isLoading, error } = useQuery({
     queryKey: ['label-scan', filters, searchTrigger],
     queryFn: async () => {
-      if (!filters.country && !filters.yearFrom && !filters.yearTo && !filters.genre && !filters.similarTo) {
+      if (!filters.country && !filters.yearFrom && !filters.yearTo && !filters.style && !filters.similarTo) {
         return [];
       }
 
@@ -93,9 +102,12 @@ const LabelScan = () => {
           searchParams.query = filters.similarTo.trim();
         }
 
-        // Add genre filter (fuzzy matching)
-        if (filters.genre && filters.genre !== "All Genres") {
-          searchParams.genre = filters.genre;
+        // Always set genre to Electronic
+        searchParams.genre = 'Electronic';
+
+        // Add style filter if provided
+        if (filters.style && filters.style !== "All Styles") {
+          searchParams.style = filters.style;
         }
 
         // Add year range
@@ -167,7 +179,7 @@ const LabelScan = () => {
               : 'Unknown'
           }))
           .sort((a, b) => b.releaseCount - a.releaseCount)
-          .slice(0, filters.maxLabels);
+          .slice(0, filters.maxReleasesPerLabel);
 
         return results;
       } catch (error) {
@@ -180,7 +192,7 @@ const LabelScan = () => {
 
   const handleScan = () => {
     if (!filters.country && !filters.yearFrom && !filters.yearTo && 
-        !filters.genre && !filters.similarTo) {
+        !filters.style && !filters.similarTo) {
       toast({
         title: "Filter required",
         description: "Please add at least one filter to scan for labels",
@@ -284,25 +296,36 @@ const LabelScan = () => {
                 </div>
               </div>
 
-              {/* Genre */}
+              {/* Genre (Fixed to Electronic) */}
               <div className="space-y-2">
                 <Label htmlFor="genre">Genre</Label>
-                <Select value={filters.genre || "All Genres"} onValueChange={(value) => updateFilter('genre', value)}>
+                <Input
+                  id="genre"
+                  value="Electronic"
+                  disabled
+                  className="bg-background/30"
+                />
+              </div>
+
+              {/* Style */}
+              <div className="space-y-2">
+                <Label htmlFor="style">Style</Label>
+                <Select value={filters.style || "All Styles"} onValueChange={(value) => updateFilter('style', value)}>
                   <SelectTrigger className="bg-background/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {GENRES.map(genre => (
-                      <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                    {STYLES.map(style => (
+                      <SelectItem key={style} value={style}>{style}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Max Labels */}
+              {/* Maximum Releases Per Label */}
               <div className="space-y-2">
-                <Label htmlFor="maxLabels">Max Labels</Label>
-                <Select value={filters.maxLabels.toString()} onValueChange={(value) => updateFilter('maxLabels', parseInt(value))}>
+                <Label htmlFor="maxReleasesPerLabel">Maximum Releases Per Label</Label>
+                <Select value={filters.maxReleasesPerLabel.toString()} onValueChange={(value) => updateFilter('maxReleasesPerLabel', parseInt(value))}>
                   <SelectTrigger className="bg-background/50">
                     <SelectValue />
                   </SelectTrigger>
