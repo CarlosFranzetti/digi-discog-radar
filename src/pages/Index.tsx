@@ -4,10 +4,11 @@ import { SearchBar } from "@/components/SearchBar";
 import { SearchFilters } from "@/components/SearchFilters";
 import { ReleaseCard } from "@/components/ReleaseCard";
 import { ReleaseDetailsDialog } from "@/components/ReleaseDetailsDialog";
-import { LabelScan } from "@/components/LabelScan";
 import { discogsService, DiscogsSearchParams } from "@/services/discogsService";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Disc3 } from "lucide-react";
+import { Loader2, Disc3, Building2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -120,7 +121,7 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border/50 backdrop-blur-lg bg-background/80 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <Disc3 className="h-6 w-6 text-primary-foreground" />
@@ -132,7 +133,12 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Discover and explore music</p>
               </div>
             </div>
-            <LabelScan />
+            <Link to="/label-scan">
+              <Button variant="outline" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                Label Scan
+              </Button>
+            </Link>
           </div>
           
           <div className="space-y-4">
