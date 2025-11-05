@@ -108,4 +108,21 @@ export const discogsService = {
 
     return response.json();
   },
+
+  async searchArtists(query: string): Promise<{ results: Array<{ id: number; title: string; thumb?: string }> }> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('q', query);
+    queryParams.append('type', 'artist');
+    queryParams.append('per_page', '5');
+    queryParams.append('key', DISCOGS_KEY);
+    queryParams.append('secret', DISCOGS_SECRET);
+
+    const response = await fetch(`${DISCOGS_API_URL}/database/search?${queryParams}`);
+    
+    if (!response.ok) {
+      throw new Error(`Discogs API error: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
 };

@@ -116,17 +116,6 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="genre">Genre</Label>
-                <Input
-                  id="genre"
-                  placeholder="Rock, Jazz, Electronic..."
-                  value={filters.genre || ''}
-                  onChange={(e) => updateFilter('genre', e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="style">Style</Label>
                 <Input
                   id="style"
@@ -136,17 +125,17 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
                   className="bg-background/50"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="label">Label</Label>
-              <Input
-                id="label"
-                placeholder="Record label name"
-                value={filters.label || ''}
-                onChange={(e) => updateFilter('label', e.target.value)}
-                className="bg-background/50"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="genre">Genre</Label>
+                <Input
+                  id="genre"
+                  placeholder="Rock, Jazz, Electronic..."
+                  value={filters.genre || ''}
+                  onChange={(e) => updateFilter('genre', e.target.value)}
+                  className="bg-background/50"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -161,11 +150,22 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="label">Label</Label>
+              <Input
+                id="label"
+                placeholder="Record label name"
+                value={filters.label || ''}
+                onChange={(e) => updateFilter('label', e.target.value)}
+                className="bg-background/50"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="format">Format</Label>
               <Input
                 id="format"
                 placeholder="Vinyl, CD, Cassette..."
-                value={filters.format || ''}
+                value={filters.format || 'Vinyl'}
                 onChange={(e) => updateFilter('format', e.target.value)}
                 className="bg-background/50"
               />
