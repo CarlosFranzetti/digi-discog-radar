@@ -5,9 +5,18 @@ import { SearchFilters } from "@/components/SearchFilters";
 import { ReleaseCard } from "@/components/ReleaseCard";
 import { ReleaseDetailsDialog } from "@/components/ReleaseDetailsDialog";
 import { LabelScan } from "@/components/LabelScan";
+import { LabelCard } from "@/components/LabelCard";
+import { LabelListItem } from "@/components/LabelListItem";
 import { discogsService, DiscogsSearchParams } from "@/services/discogsService";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Disc3 } from "lucide-react";
+import { Loader2, Disc3, LayoutGrid, List, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -46,6 +55,13 @@ const Index = () => {
   const [sortBy, setSortBy] = useState<'year' | 'title' | 'artist'>('year');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [perPage, setPerPage] = useState(200);
+  
+  // Label scan state
+  const [labelScanActive, setLabelScanActive] = useState(false);
+  const [labelResults, setLabelResults] = useState<any>(null);
+  const [labelViewMode, setLabelViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [isLoadingLabels, setIsLoadingLabels] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['discogs-search', searchQuery, filters, searchTrigger, currentPage, sortBy, sortOrder, perPage],
@@ -115,6 +131,36 @@ const Index = () => {
     setDialogOpen(true);
   };
 
+  const handleLabelScanResults = (results: any, isLoading: boolean) => {
+    setLabelResults(results);
+    setIsLoadingLabels(isLoading);
+    if (results) {
+      setLabelScanActive(true);
+    }
+  };
+
+  const handleLabelClick = (labelName: string) => {
+    setSelectedLabel(labelName);
+  };
+
+  const clearLabelScan = () => {
+    setLabelScanActive(false);
+    setLabelResults(null);
+    setSelectedLabel(null);
+  };
+
+  // Query for label releases
+  const { data: labelReleases, isLoading: isLoadingLabelReleases } = useQuery({
+    queryKey: ['label-releases', selectedLabel],
+    queryFn: async () => {
+      return discogsService.search({
+        label: selectedLabel!,
+        per_page: 100,
+      });
+    },
+    enabled: !!selectedLabel,
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
@@ -132,7 +178,10 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Discover and explore music</p>
               </div>
             </div>
-            <LabelScan initialFilters={{ country: filters.country, yearFrom: filters.yearFrom, yearTo: filters.yearTo, genre: filters.genre || filters.style }} />
+            <LabelScan 
+              initialFilters={{ country: filters.country, yearFrom: filters.yearFrom, yearTo: filters.yearTo, genre: filters.genre || filters.style }}
+              onResults={handleLabelScanResults}
+            />
           </div>
           
           <div className="space-y-4">
@@ -154,6 +203,80 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Label Scan Results */}
+        {labelScanActive && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-semibold">Label Scan Results</h2>
+                {labelResults && (
+                  <span className="text-sm text-muted-foreground">
+                    {labelResults.results?.length || 0} labels found
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={labelViewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setLabelViewMode('grid')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={labelViewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setLabelViewMode('list')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearLabelScan}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {isLoadingLabels && (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            )}
+
+            {!isLoadingLabels && labelResults?.results && labelResults.results.length > 0 && (
+              labelViewMode === 'grid' ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {labelResults.results.map((label: any) => (
+                    <LabelCard
+                      key={label.id}
+                      label={label}
+                      onClick={() => handleLabelClick(label.title)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {labelResults.results.map((label: any) => (
+                    <LabelListItem
+                      key={label.id}
+                      label={label}
+                      onClick={() => handleLabelClick(label.title)}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
+            {!isLoadingLabels && labelResults?.results?.length === 0 && (
+              <p className="text-center py-8 text-muted-foreground">
+                No labels found. Try adjusting your filters.
+              </p>
+            )}
+          </div>
+        )}
         {error && (
           <div className="text-center py-12">
             <p className="text-destructive">Error loading results. Please try again.</p>
@@ -335,6 +458,41 @@ const Index = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
+
+      <Dialog open={!!selectedLabel} onOpenChange={(open) => !open && setSelectedLabel(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle>{selectedLabel} - Releases</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedLabel(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          
+          {isLoadingLabelReleases ? (
+            <div className="text-center py-8">Loading releases...</div>
+          ) : labelReleases && labelReleases.results.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {labelReleases.results.map((release: any) => (
+                <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  onClick={() => handleReleaseClick(release.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No releases found for this label
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

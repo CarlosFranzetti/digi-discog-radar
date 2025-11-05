@@ -41,7 +41,13 @@ const GENRES = [
   "Trance"
 ].sort((a, b) => a.localeCompare(b));
 
-export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ country: string; yearFrom: string; yearTo: string; genre: string }> }) => {
+export const LabelScan = ({ 
+  initialFilters,
+  onResults 
+}: { 
+  initialFilters?: Partial<{ country: string; yearFrom: string; yearTo: string; genre: string }>;
+  onResults?: (results: any, isLoading: boolean) => void;
+}) => {
   const { toast } = useToast();
   const [country, setCountry] = useState("");
   const [yearFrom, setYearFrom] = useState("");
@@ -78,6 +84,7 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
   const { data: labelResults, isLoading } = useQuery({
     queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, releaseLimit, searchTrigger],
     queryFn: async () => {
+      if (onResults) onResults(null, true);
       // Build search query - prioritize "similar to" field if provided
       let searchQuery = similarTo || '';
 
@@ -198,7 +205,7 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
         .sort((a: any, b: any) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0))
         .slice(0, limit);
 
-      return {
+      const result = {
         results: uniqueLabels,
         pagination: {
           page: 1,
@@ -208,8 +215,13 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
           urls: {},
         },
       };
+      
+      if (onResults) onResults(result, false);
+      return result;
     },
     enabled: searchTrigger > 0,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const { data: labelReleases, isLoading: isLoadingReleases } = useQuery({
@@ -243,7 +255,10 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
 
   const handleLabelClick = (labelName: string) => {
     setSelectedLabel(labelName);
-    setIsPopoverOpen(false);
+    if (onResults) {
+      // Close popover when showing results externally
+      setIsPopoverOpen(false);
+    }
   };
 
   const handleReleaseClick = (releaseId: number) => {
@@ -352,7 +367,7 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
               {isLoading ? "Scanning..." : "Scan Labels"}
             </Button>
 
-            {labelResults && labelResults.results.length > 0 && (
+            {!onResults && labelResults && labelResults.results.length > 0 && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">
                   Found {labelResults.results.length} labels
@@ -369,16 +384,23 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
               </div>
             )}
 
-            {labelResults && labelResults.results.length === 0 && searchTrigger > 0 && !isLoading && (
+            {!onResults && labelResults && labelResults.results.length === 0 && searchTrigger > 0 && !isLoading && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No labels found. Try adjusting your filters.
+              </p>
+            )}
+            
+            {onResults && searchTrigger > 0 && !isLoading && (
+              <p className="text-sm text-primary text-center py-2">
+                Results displayed below
               </p>
             )}
           </div>
         </PopoverContent>
       </Popover>
 
-      <Dialog open={!!selectedLabel} onOpenChange={(open) => !open && setSelectedLabel(null)}>
+      {!onResults && (
+        <Dialog open={!!selectedLabel} onOpenChange={(open) => !open && setSelectedLabel(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
@@ -412,6 +434,7 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
           )}
         </DialogContent>
       </Dialog>
+      )}
 
       <ReleaseDetailsDialog
         release={releaseDetails}

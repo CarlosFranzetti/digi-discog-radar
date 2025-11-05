@@ -10,6 +10,7 @@ interface LabelCardProps {
     country?: string;
     resource_url?: string;
     releaseCount?: number;
+    matchedCount?: number;
   };
   onClick?: () => void;
 }
@@ -37,7 +38,12 @@ export const LabelCard = ({ label, onClick }: LabelCardProps) => {
         )}
         {label.releaseCount && (
           <Badge className="absolute top-2 right-2 bg-primary/90">
-            {label.releaseCount} releases
+            {label.releaseCount}
+          </Badge>
+        )}
+        {label.matchedCount && !label.releaseCount && (
+          <Badge className="absolute top-2 right-2 bg-accent/90">
+            {label.matchedCount} matched
           </Badge>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
