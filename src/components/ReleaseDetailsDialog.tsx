@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Music, Calendar, Globe, Tag, Disc, Building2, Hash, Barcode, Play, Video } from "lucide-react";
-import { useRef, useEffect } from "react";
+import { Music, Calendar, Globe, Tag, Disc, Building2, Hash, Barcode, Play, Pause, Video } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
 
 // Extend Window interface for YouTube IFrame API
 declare global {
@@ -38,6 +38,7 @@ interface ReleaseDetailsDialogProps {
 
 export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDetailsDialogProps) => {
   const videoRefs = useRef<Record<number, HTMLIFrameElement | null>>({});
+  const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     // Load YouTube IFrame API
@@ -81,8 +82,15 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
   const handleTrackClick = (videoIndex: number) => {
     const iframe = videoRefs.current[videoIndex];
     if (iframe && iframe.contentWindow) {
-      // Use YouTube IFrame API postMessage to play the video
-      iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      // Toggle playback - if clicking the currently playing track, pause it
+      if (playingVideoIndex === videoIndex) {
+        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+        setPlayingVideoIndex(null);
+      } else {
+        // Play the new video
+        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        setPlayingVideoIndex(videoIndex);
+      }
     }
   };
 
@@ -237,9 +245,13 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                         }`}
                         onClick={hasVideo ? () => handleTrackClick(videoIndex) : undefined}
                       >
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                           <span className="text-muted-foreground w-8 text-right">{track.position}</span>
-                          {hasVideo && <Play className="h-3 w-3 text-muted-foreground" />}
+                          {hasVideo && (
+                            playingVideoIndex === videoIndex 
+                              ? <Pause className="h-3 w-3 text-primary" />
+                              : <Play className="h-3 w-3 text-muted-foreground" />
+                          )}
                           <span>{track.title}</span>
                         </div>
                         {track.duration && (
