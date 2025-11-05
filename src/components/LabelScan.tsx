@@ -390,9 +390,9 @@ export const LabelScan = ({
               </p>
             )}
             
-            {onResults && searchTrigger > 0 && !isLoading && (
+            {onResults && searchTrigger > 0 && !isLoading && labelResults && labelResults.results.length > 0 && (
               <p className="text-sm text-primary text-center py-2">
-                Results displayed below
+                Results displayed in main area
               </p>
             )}
           </div>
