@@ -322,7 +322,6 @@ export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ count
                     <SelectValue placeholder="All genres" />
                   </SelectTrigger>
                   <SelectContent className="z-[150]">
-                    <SelectItem value="">All genres</SelectItem>
                     {GENRES.map((g) => (
                       <SelectItem key={g} value={g}>
                         {g}
