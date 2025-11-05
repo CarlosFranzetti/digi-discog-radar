@@ -72,15 +72,6 @@ export const LabelScan = ({
     }
   }, [initialFilters]);
 
-  // Auto-scan on open if we already have filters
-  useEffect(() => {
-    if (isPopoverOpen && searchTrigger === 0) {
-      if (country || yearFrom || yearTo || genre || similarTo) {
-        setSearchTrigger((prev) => prev + 1);
-      }
-    }
-  }, [isPopoverOpen]);
-
   const { data: labelResults, isLoading } = useQuery({
     queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, releaseLimit, searchTrigger],
     queryFn: async () => {
@@ -251,14 +242,14 @@ export const LabelScan = ({
       return;
     }
     setSearchTrigger(prev => prev + 1);
+    if (onResults) {
+      setIsPopoverOpen(false); // Close popover when showing results externally
+    }
   };
 
   const handleLabelClick = (labelName: string) => {
     setSelectedLabel(labelName);
-    if (onResults) {
-      // Close popover when showing results externally
-      setIsPopoverOpen(false);
-    }
+    setIsPopoverOpen(false);
   };
 
   const handleReleaseClick = (releaseId: number) => {
