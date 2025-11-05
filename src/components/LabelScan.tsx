@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ScanSearch, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ const GENRES = [
   "Trance"
 ].sort((a, b) => a.localeCompare(b));
 
-export const LabelScan = () => {
+export const LabelScan = ({ initialFilters }: { initialFilters?: Partial<{ country: string; yearFrom: string; yearTo: string; genre: string }> }) => {
   const { toast } = useToast();
   const [country, setCountry] = useState("");
   const [yearFrom, setYearFrom] = useState("");
@@ -53,6 +53,27 @@ export const LabelScan = () => {
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [selectedReleaseId, setSelectedReleaseId] = useState<number | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  // Prefill from global filters when provided
+  useEffect(() => {
+    if (!initialFilters) return;
+    if (!country && initialFilters.country) setCountry(initialFilters.country);
+    if (!yearFrom && initialFilters.yearFrom) setYearFrom(initialFilters.yearFrom);
+    if (!yearTo && initialFilters.yearTo) setYearTo(initialFilters.yearTo);
+    if (!genre && initialFilters.genre) {
+      const match = GENRES.find((g) => g.toLowerCase() === initialFilters.genre!.toLowerCase());
+      if (match) setGenre(match);
+    }
+  }, [initialFilters]);
+
+  // Auto-scan on open if we already have filters
+  useEffect(() => {
+    if (isPopoverOpen && searchTrigger === 0) {
+      if (country || yearFrom || yearTo || genre || similarTo) {
+        setSearchTrigger((prev) => prev + 1);
+      }
+    }
+  }, [isPopoverOpen]);
 
   const { data: labelResults, isLoading } = useQuery({
     queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, releaseLimit, searchTrigger],

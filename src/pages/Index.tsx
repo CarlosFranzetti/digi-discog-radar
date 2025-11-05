@@ -132,7 +132,7 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Discover and explore music</p>
               </div>
             </div>
-            <LabelScan />
+            <LabelScan initialFilters={{ country: filters.country, yearFrom: filters.yearFrom, yearTo: filters.yearTo, genre: filters.genre || filters.style }} />
           </div>
           
           <div className="space-y-4">
