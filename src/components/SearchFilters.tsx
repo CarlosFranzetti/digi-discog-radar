@@ -65,15 +65,26 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
     if (key === 'yearFrom') setYearFromTouched(true);
     if (key === 'yearTo') setYearToTouched(true);
     
+    // Just update with the raw value while typing
+    onChange({ ...filters, [key]: value });
+  };
+
+  const handleYearBlur = (key: 'yearFrom' | 'yearTo', value: string) => {
+    // Parse and validate only when user is done typing
     const parsedYear = smartYearParse(value);
     const yearNum = parseInt(parsedYear);
     
     // Validate year is within range
-    if (parsedYear && (yearNum < 1950 || yearNum > currentYear)) {
-      return; // Don't update if out of range
+    if (parsedYear && yearNum && (yearNum < 1950 || yearNum > currentYear)) {
+      // Reset to empty if out of range
+      onChange({ ...filters, [key]: '' });
+      return;
     }
     
-    onChange({ ...filters, [key]: parsedYear });
+    // Update with parsed year
+    if (parsedYear) {
+      onChange({ ...filters, [key]: parsedYear });
+    }
   };
 
   const handleYearFocus = (key: 'yearFrom' | 'yearTo') => {
@@ -97,34 +108,33 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
 
   return (
     <div className="w-full">
-      <Button
-        variant="glass"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full justify-between mb-4"
-      >
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          <span>Advanced Filters</span>
-          {hasActiveFilters && (
-            <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full">
-              Active
-            </span>
-          )}
-        </div>
+      <div className="relative">
+        <Button
+          variant="glass"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full justify-between mb-4"
+        >
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <span>Advanced Filters</span>
+            {hasActiveFilters && (
+              <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full">
+                Active
+              </span>
+            )}
+          </div>
+        </Button>
         {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              clearFilters();
-            }}
-            className="h-auto p-1"
+            onClick={clearFilters}
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-auto p-1 z-10"
           >
             <X className="h-4 w-4" />
           </Button>
         )}
-      </Button>
+      </div>
 
       {isExpanded && (
         <Card className="bg-card/50 backdrop-blur-md border-border/50">
@@ -157,6 +167,7 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
                   placeholder="1950"
                   value={filters.yearFrom || ''}
                   onChange={(e) => handleYearChange('yearFrom', e.target.value)}
+                  onBlur={(e) => handleYearBlur('yearFrom', e.target.value)}
                   onFocus={() => handleYearFocus('yearFrom')}
                   className="bg-background/50"
                   maxLength={4}
@@ -171,6 +182,7 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
                   placeholder={currentYear.toString()}
                   value={filters.yearTo || ''}
                   onChange={(e) => handleYearChange('yearTo', e.target.value)}
+                  onBlur={(e) => handleYearBlur('yearTo', e.target.value)}
                   onFocus={() => handleYearFocus('yearTo')}
                   className="bg-background/50"
                   maxLength={4}
