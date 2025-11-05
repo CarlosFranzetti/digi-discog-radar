@@ -2,7 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Music, Calendar, Globe, Tag, Disc, Building2, Hash, Barcode, Play, Video } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+
+// Extend Window interface for YouTube IFrame API
+declare global {
+  interface Window {
+    YT: any;
+  }
+}
 
 interface ReleaseDetails {
   id: number;
@@ -30,7 +37,17 @@ interface ReleaseDetailsDialogProps {
 }
 
 export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDetailsDialogProps) => {
-  const videoRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const videoRefs = useRef<Record<number, HTMLIFrameElement | null>>({});
+
+  useEffect(() => {
+    // Load YouTube IFrame API
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
 
   if (!release) return null;
 
@@ -62,14 +79,10 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
   };
 
   const handleTrackClick = (videoIndex: number) => {
-    const videoElement = videoRefs.current[videoIndex];
-    if (videoElement) {
-      videoElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Add a brief highlight effect
-      videoElement.style.outline = '2px solid hsl(var(--primary))';
-      setTimeout(() => {
-        videoElement.style.outline = '';
-      }, 2000);
+    const iframe = videoRefs.current[videoIndex];
+    if (iframe && iframe.contentWindow) {
+      // Use YouTube IFrame API postMessage to play the video
+      iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
     }
   };
 
@@ -255,12 +268,12 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                       <div 
                         key={idx} 
                         className="space-y-2 rounded-lg transition-all duration-300"
-                        ref={(el) => { videoRefs.current[idx] = el; }}
                       >
                         <p className="text-sm font-medium">{video.title}</p>
                         <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-secondary">
                           <iframe
-                            src={`https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0`}
+                            ref={(el) => { videoRefs.current[idx] = el; }}
+                            src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&modestbranding=1&rel=0`}
                             title={video.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen

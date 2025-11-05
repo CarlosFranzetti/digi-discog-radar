@@ -44,7 +44,7 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<'year' | 'title' | 'artist'>('year');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [perPage, setPerPage] = useState(200);
 
   const { data, isLoading, error } = useQuery({
@@ -179,18 +179,6 @@ const Index = () => {
               </div>
               
               <div className="flex flex-wrap items-center gap-2">
-                <Select value={perPage.toString()} onValueChange={(value) => { setPerPage(parseInt(value)); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="200">200</SelectItem>
-                    <SelectItem value="300">300</SelectItem>
-                    <SelectItem value="400">400</SelectItem>
-                  </SelectContent>
-                </Select>
-                
                 <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
                   <SelectTrigger className="w-[100px]">
                     <SelectValue />
@@ -209,6 +197,18 @@ const Index = () => {
                   <SelectContent>
                     <SelectItem value="asc">Asc</SelectItem>
                     <SelectItem value="desc">Desc</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={perPage.toString()} onValueChange={(value) => { setPerPage(parseInt(value)); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="300">300</SelectItem>
+                    <SelectItem value="400">400</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
