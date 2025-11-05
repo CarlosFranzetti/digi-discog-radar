@@ -54,7 +54,7 @@ export const LabelScan = ({
   const [yearTo, setYearTo] = useState("");
   const [genre, setGenre] = useState("");
   const [similarTo, setSimilarTo] = useState("");
-  const [releaseLimit, setReleaseLimit] = useState("50");
+  const [minReleases, setMinReleases] = useState("10");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [selectedReleaseId, setSelectedReleaseId] = useState<number | null>(null);
@@ -73,7 +73,7 @@ export const LabelScan = ({
   }, [initialFilters]);
 
   const { data: labelResults, isLoading } = useQuery({
-    queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, releaseLimit, searchTrigger],
+    queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, minReleases, searchTrigger],
     queryFn: async () => {
       if (onResults) onResults(null, true);
       // Build search query - prioritize "similar to" field if provided
@@ -170,9 +170,9 @@ export const LabelScan = ({
       }
 
       // Get approximate TOTAL release counts per label for the top N labels to respect rate limits
-      const limit = parseInt(releaseLimit);
+      const minReleasesNum = parseInt(minReleases);
       labels.sort((a, b) => (b.matchedCount || 0) - (a.matchedCount || 0));
-      const topForCounting = labels.slice(0, Math.min(limit, 25));
+      const topForCounting = labels.slice(0, Math.min(100, labels.length));
 
       try {
         const counts = await Promise.all(
@@ -192,9 +192,10 @@ export const LabelScan = ({
       }
 
       // Final sort by total releases desc, then by matchedCount desc
+      // Filter by minimum releases
       const uniqueLabels = labels
-        .sort((a: any, b: any) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0))
-        .slice(0, limit);
+        .filter((l: any) => (l.releaseCount || 0) >= minReleasesNum)
+        .sort((a: any, b: any) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0));
 
       const result = {
         results: uniqueLabels,
@@ -338,16 +339,17 @@ export const LabelScan = ({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="releaseLimit">Max Labels</Label>
-                <Select value={releaseLimit} onValueChange={setReleaseLimit}>
-                  <SelectTrigger id="releaseLimit">
+                <Label htmlFor="minReleases">Min Releases Per Label</Label>
+                <Select value={minReleases} onValueChange={setMinReleases}>
+                  <SelectTrigger id="minReleases">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-[150]">
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="5">5+</SelectItem>
+                    <SelectItem value="10">10+</SelectItem>
+                    <SelectItem value="25">25+</SelectItem>
+                    <SelectItem value="50">50+</SelectItem>
+                    <SelectItem value="100">100+</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

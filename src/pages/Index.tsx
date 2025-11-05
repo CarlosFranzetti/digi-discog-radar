@@ -58,6 +58,10 @@ const Index = () => {
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
   const [releaseViewMode, setReleaseViewMode] = useState<'grid' | 'list'>('list');
+  const [labelSortBy, setLabelSortBy] = useState<'name' | 'releases' | 'year'>('releases');
+  const [labelSortOrder, setLabelSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [labelPerPage, setLabelPerPage] = useState(50);
+  const [labelCurrentPage, setLabelCurrentPage] = useState(1);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['discogs-search', searchQuery, filters, searchTrigger, currentPage, sortBy, sortOrder, perPage],
@@ -132,7 +136,8 @@ const Index = () => {
     setIsLoadingLabels(isLoading);
     if (results) {
       setLabelScanActive(true);
-      setSelectedLabel(null); // Reset selected label when new scan results come in
+      setSelectedLabel(null);
+      setLabelCurrentPage(1); // Reset to first page on new results
     }
   };
 
@@ -144,11 +149,43 @@ const Index = () => {
     setLabelScanActive(false);
     setLabelResults(null);
     setSelectedLabel(null);
+    setLabelCurrentPage(1);
   };
 
   const backToLabels = () => {
     setSelectedLabel(null);
+    setLabelCurrentPage(1);
   };
+
+  // Sort and paginate label results
+  const sortedAndPaginatedLabels = labelResults?.results ? (() => {
+    let sorted = [...labelResults.results];
+    
+    // Sort
+    sorted.sort((a: any, b: any) => {
+      let comparison = 0;
+      if (labelSortBy === 'name') {
+        comparison = a.title.localeCompare(b.title);
+      } else if (labelSortBy === 'releases') {
+        comparison = (a.releaseCount || 0) - (b.releaseCount || 0);
+      } else if (labelSortBy === 'year') {
+        // Sort by most recent release year (not implemented in data, fallback to name)
+        comparison = a.title.localeCompare(b.title);
+      }
+      return labelSortOrder === 'asc' ? comparison : -comparison;
+    });
+    
+    // Paginate
+    const startIndex = (labelCurrentPage - 1) * labelPerPage;
+    const endIndex = startIndex + labelPerPage;
+    const paginated = sorted.slice(startIndex, endIndex);
+    
+    return {
+      results: paginated,
+      totalPages: Math.ceil(sorted.length / labelPerPage),
+      totalItems: sorted.length
+    };
+  })() : null;
 
   // Query for label releases
   const { data: labelReleases, isLoading: isLoadingLabelReleases } = useQuery({
@@ -205,16 +242,53 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Label Scan Results - Show labels OR label's releases */}
-        {labelScanActive && !selectedLabel && labelResults && (
+        {labelScanActive && !selectedLabel && sortedAndPaginatedLabels && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between bg-card/30 backdrop-blur-sm rounded-lg p-4 border border-border/50">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold">Label Scan Results</h2>
-                <span className="text-sm text-muted-foreground">
-                  {labelResults.results?.length || 0} labels found
-                </span>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-card/30 backdrop-blur-sm rounded-lg p-4 border border-border/50">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold">Label Scan Results</h2>
+                  <span className="text-sm text-muted-foreground">
+                    {sortedAndPaginatedLabels.totalItems} labels found
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Page {labelCurrentPage} of {sortedAndPaginatedLabels.totalPages}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={labelSortBy} onValueChange={(value: any) => { setLabelSortBy(value); setLabelCurrentPage(1); }}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="releases">Releases</SelectItem>
+                    <SelectItem value="name">Alphabetical</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={labelSortOrder} onValueChange={(value: any) => { setLabelSortOrder(value); setLabelCurrentPage(1); }}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Asc</SelectItem>
+                    <SelectItem value="desc">Desc</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={labelPerPage.toString()} onValueChange={(value) => { setLabelPerPage(parseInt(value)); setLabelCurrentPage(1); }}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                  </SelectContent>
+                </Select>
+                
                 <Button
                   variant={labelViewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"
@@ -245,10 +319,10 @@ const Index = () => {
               </div>
             )}
 
-            {!isLoadingLabels && labelResults.results && labelResults.results.length > 0 && (
+            {!isLoadingLabels && sortedAndPaginatedLabels.results.length > 0 && (
               labelViewMode === 'grid' ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {labelResults.results.map((label: any) => (
+                  {sortedAndPaginatedLabels.results.map((label: any) => (
                     <LabelCard
                       key={label.id}
                       label={label}
@@ -258,7 +332,7 @@ const Index = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {labelResults.results.map((label: any) => (
+                  {sortedAndPaginatedLabels.results.map((label: any) => (
                     <LabelListItem
                       key={label.id}
                       label={label}
@@ -269,7 +343,52 @@ const Index = () => {
               )
             )}
 
-            {!isLoadingLabels && labelResults.results?.length === 0 && (
+            {sortedAndPaginatedLabels.totalPages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => { setLabelCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className={labelCurrentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.min(5, sortedAndPaginatedLabels.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (sortedAndPaginatedLabels.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (labelCurrentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (labelCurrentPage >= sortedAndPaginatedLabels.totalPages - 2) {
+                      pageNum = sortedAndPaginatedLabels.totalPages - 4 + i;
+                    } else {
+                      pageNum = labelCurrentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => { setLabelCurrentPage(pageNum); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          isActive={labelCurrentPage === pageNum}
+                          className="cursor-pointer"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => { setLabelCurrentPage(p => Math.min(sortedAndPaginatedLabels.totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className={labelCurrentPage === sortedAndPaginatedLabels.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+
+            {!isLoadingLabels && sortedAndPaginatedLabels.results.length === 0 && (
               <p className="text-center py-8 text-muted-foreground">
                 No labels found. Try adjusting your filters.
               </p>
