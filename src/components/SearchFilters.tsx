@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,13 +24,73 @@ interface SearchFiltersProps {
 
 export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [yearFromTouched, setYearFromTouched] = useState(false);
+  const [yearToTouched, setYearToTouched] = useState(false);
+  const currentYear = new Date().getFullYear();
+
+  // Set demo values on mount
+  useEffect(() => {
+    if (!yearFromTouched && !filters.yearFrom) {
+      onChange({ ...filters, yearFrom: '1980', yearTo: currentYear.toString() });
+    }
+  }, []);
+
+  const smartYearParse = (value: string): string => {
+    if (!value) return '';
+    
+    const numValue = parseInt(value);
+    
+    // If it's already a 4-digit year, return as is
+    if (value.length === 4) return value;
+    
+    // If it's 2 digits
+    if (value.length === 2) {
+      // If starts with 0-2, assume 2000s (00-29 -> 2000-2029)
+      if (numValue <= 29) {
+        return `20${value}`;
+      }
+      // Otherwise assume 1900s (30-99 -> 1930-1999)
+      return `19${value}`;
+    }
+    
+    // If it's 3 digits or 1 digit, just return as is for now
+    return value;
+  };
 
   const updateFilter = (key: keyof FilterValues, value: string) => {
     onChange({ ...filters, [key]: value });
   };
 
+  const handleYearChange = (key: 'yearFrom' | 'yearTo', value: string) => {
+    if (key === 'yearFrom') setYearFromTouched(true);
+    if (key === 'yearTo') setYearToTouched(true);
+    
+    const parsedYear = smartYearParse(value);
+    const yearNum = parseInt(parsedYear);
+    
+    // Validate year is within range
+    if (parsedYear && (yearNum < 1950 || yearNum > currentYear)) {
+      return; // Don't update if out of range
+    }
+    
+    onChange({ ...filters, [key]: parsedYear });
+  };
+
+  const handleYearFocus = (key: 'yearFrom' | 'yearTo') => {
+    if (key === 'yearFrom' && !yearFromTouched) {
+      setYearFromTouched(true);
+      onChange({ ...filters, yearFrom: '' });
+    }
+    if (key === 'yearTo' && !yearToTouched) {
+      setYearToTouched(true);
+      onChange({ ...filters, yearTo: '' });
+    }
+  };
+
   const clearFilters = () => {
     onChange({});
+    setYearFromTouched(false);
+    setYearToTouched(false);
   };
 
   const hasActiveFilters = Object.values(filters).some(v => v);
@@ -93,11 +153,13 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
                 <Label htmlFor="yearFrom">Year From</Label>
                 <Input
                   id="yearFrom"
-                  type="number"
-                  placeholder="1960"
+                  type="text"
+                  placeholder="1950"
                   value={filters.yearFrom || ''}
-                  onChange={(e) => updateFilter('yearFrom', e.target.value)}
+                  onChange={(e) => handleYearChange('yearFrom', e.target.value)}
+                  onFocus={() => handleYearFocus('yearFrom')}
                   className="bg-background/50"
+                  maxLength={4}
                 />
               </div>
               
@@ -105,11 +167,13 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
                 <Label htmlFor="yearTo">Year To</Label>
                 <Input
                   id="yearTo"
-                  type="number"
-                  placeholder="2024"
+                  type="text"
+                  placeholder={currentYear.toString()}
                   value={filters.yearTo || ''}
-                  onChange={(e) => updateFilter('yearTo', e.target.value)}
+                  onChange={(e) => handleYearChange('yearTo', e.target.value)}
+                  onFocus={() => handleYearFocus('yearTo')}
                   className="bg-background/50"
+                  maxLength={4}
                 />
               </div>
             </div>
