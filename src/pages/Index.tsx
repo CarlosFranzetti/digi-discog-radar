@@ -248,7 +248,7 @@ const Index = () => {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-card/30 backdrop-blur-sm rounded-lg p-4 border border-border/50">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-semibold">Label Scan Results</h2>
+                  <h2 className="text-xl font-semibold">Label Radar Results</h2>
                   <span className="text-sm text-muted-foreground">
                     {sortedAndPaginatedLabels.totalItems} labels found
                   </span>

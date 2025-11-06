@@ -266,7 +266,7 @@ export const LabelScan = ({
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="gap-2">
             <ScanSearch className="h-4 w-4" />
-            Label Scan
+            Label Radar
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80 z-[100] bg-popover" align="end" sideOffset={8}>
