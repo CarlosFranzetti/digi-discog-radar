@@ -58,6 +58,7 @@ const Index = () => {
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
   const [releaseViewMode, setReleaseViewMode] = useState<'grid' | 'list'>('list');
+  const [mainViewMode, setMainViewMode] = useState<'grid' | 'list'>('grid');
   const [labelSortBy, setLabelSortBy] = useState<'name' | 'releases' | 'year'>('releases');
   const [labelSortOrder, setLabelSortOrder] = useState<'asc' | 'desc'>('desc');
   const [labelPerPage, setLabelPerPage] = useState(50);
@@ -535,6 +536,21 @@ const Index = () => {
                     <SelectItem value="400">400</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Button
+                  variant={mainViewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMainViewMode('grid')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={mainViewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMainViewMode('list')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
@@ -583,15 +599,27 @@ const Index = () => {
               </Pagination>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {data.results.map((release) => (
-                <ReleaseCard
-                  key={release.id}
-                  release={release}
-                  onClick={() => handleReleaseClick(release.id)}
-                />
-              ))}
-            </div>
+            {mainViewMode === 'grid' ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {data.results.map((release) => (
+                  <ReleaseCard
+                    key={release.id}
+                    release={release}
+                    onClick={() => handleReleaseClick(release.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.results.map((release) => (
+                  <ReleaseListItem
+                    key={release.id}
+                    release={release}
+                    onClick={() => handleReleaseClick(release.id)}
+                  />
+                ))}
+              </div>
+            )}
 
             {data.pagination.pages > 1 && (
               <Pagination>
