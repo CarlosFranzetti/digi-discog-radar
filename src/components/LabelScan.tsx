@@ -54,7 +54,7 @@ export const LabelScan = ({
   const [yearTo, setYearTo] = useState("");
   const [genre, setGenre] = useState("");
   const [similarTo, setSimilarTo] = useState("");
-  const [minReleases, setMinReleases] = useState("10");
+  const [minReleases, setMinReleases] = useState("200");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [selectedReleaseId, setSelectedReleaseId] = useState<number | null>(null);
@@ -192,9 +192,12 @@ export const LabelScan = ({
       }
 
       // Final sort by total releases desc, then by matchedCount desc
-      // Filter by maximum releases
+      // Filter by maximum releases (200+ means no upper limit)
       const uniqueLabels = labels
-        .filter((l: any) => (l.releaseCount || 0) <= minReleasesNum)
+        .filter((l: any) => {
+          if (minReleasesNum === 200) return true; // 200+ means no limit
+          return (l.releaseCount || 0) <= minReleasesNum;
+        })
         .sort((a: any, b: any) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0));
 
       const result = {
@@ -338,11 +341,10 @@ export const LabelScan = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-[150]">
-                    <SelectItem value="5">5+</SelectItem>
-                    <SelectItem value="10">10+</SelectItem>
-                    <SelectItem value="25">25+</SelectItem>
-                    <SelectItem value="50">50+</SelectItem>
-                    <SelectItem value="100">100+</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200+</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

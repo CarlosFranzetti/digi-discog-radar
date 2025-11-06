@@ -143,6 +143,7 @@ const Index = () => {
 
   const handleLabelClick = (labelName: string) => {
     setSelectedLabel(labelName);
+    setLabelResults(null); // Clear label results to show releases view
   };
 
   const clearLabelScan = () => {
