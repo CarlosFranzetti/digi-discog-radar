@@ -192,9 +192,9 @@ export const LabelScan = ({
       }
 
       // Final sort by total releases desc, then by matchedCount desc
-      // Filter by minimum releases
+      // Filter by maximum releases
       const uniqueLabels = labels
-        .filter((l: any) => (l.releaseCount || 0) >= minReleasesNum)
+        .filter((l: any) => (l.releaseCount || 0) <= minReleasesNum)
         .sort((a: any, b: any) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0));
 
       const result = {
@@ -268,13 +268,6 @@ export const LabelScan = ({
         </PopoverTrigger>
         <PopoverContent className="w-80 z-[100] bg-popover" align="end" sideOffset={8}>
           <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-1">Label Scan</h3>
-              <p className="text-sm text-muted-foreground">
-                Search for labels by country, year, and genre
-              </p>
-            </div>
-
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="similarTo">Similar To (Label Name)</Label>
@@ -339,7 +332,7 @@ export const LabelScan = ({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="minReleases">Min Releases Per Label</Label>
+                <Label htmlFor="minReleases">Max Releases Per Label</Label>
                 <Select value={minReleases} onValueChange={setMinReleases}>
                   <SelectTrigger id="minReleases">
                     <SelectValue />
