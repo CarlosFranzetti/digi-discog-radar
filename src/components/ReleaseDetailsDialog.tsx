@@ -80,8 +80,13 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
   };
 
   const handleTrackClick = (videoIndex: number) => {
-    const iframe = videoRefs.current[videoIndex];
-    if (iframe && iframe.contentWindow) {
+    try {
+      const iframe = videoRefs.current[videoIndex];
+      if (!iframe || !iframe.contentWindow) {
+        console.warn('YouTube iframe not ready yet');
+        return;
+      }
+      
       // Toggle playback - if clicking the currently playing track, pause it
       if (playingVideoIndex === videoIndex) {
         iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
@@ -91,6 +96,8 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
         iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
         setPlayingVideoIndex(videoIndex);
       }
+    } catch (error) {
+      console.error('Error controlling YouTube video:', error);
     }
   };
 
