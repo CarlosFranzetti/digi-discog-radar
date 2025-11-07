@@ -13,6 +13,7 @@ export const ReleaseCard = ({ release, onClick }: ReleaseCardProps) => {
   const labels = Array.isArray(release.label) ? release.label : (release.label ? [release.label] : []);
   const displayLabel = labels[0] || 'Unknown Label';
   const formats = Array.isArray(release.format) ? release.format : (release.format ? [release.format] : []);
+  const genres = Array.isArray(release.genre) ? release.genre : (release.genre ? [release.genre] : []);
 
   return (
     <Card 
@@ -42,7 +43,7 @@ export const ReleaseCard = ({ release, onClick }: ReleaseCardProps) => {
           {displayLabel}
         </p>
         <div className="flex flex-wrap gap-1.5">
-          {release.genre?.slice(0, 2).map((genre, index) => (
+          {genres.slice(0, 2).map((genre, index) => (
             <span
               key={index}
               className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full border border-primary/20"
