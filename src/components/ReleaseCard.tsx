@@ -10,7 +10,9 @@ interface ReleaseCardProps {
 export const ReleaseCard = ({ release, onClick }: ReleaseCardProps) => {
   const coverImage = release.cover_image || release.thumb;
   const displayYear = release.year || 'Year Unknown';
-  const displayLabel = release.label?.[0] || 'Unknown Label';
+  const labels = Array.isArray(release.label) ? release.label : (release.label ? [release.label] : []);
+  const displayLabel = labels[0] || 'Unknown Label';
+  const formats = Array.isArray(release.format) ? release.format : (release.format ? [release.format] : []);
 
   return (
     <Card 
@@ -48,7 +50,7 @@ export const ReleaseCard = ({ release, onClick }: ReleaseCardProps) => {
               {genre}
             </span>
           ))}
-          {release.format?.slice(0, 1).map((format, index) => (
+          {formats.slice(0, 1).map((format, index) => (
             <span
               key={index}
               className="px-2 py-0.5 bg-accent/10 text-accent text-xs rounded-full border border-accent/20"
@@ -58,7 +60,6 @@ export const ReleaseCard = ({ release, onClick }: ReleaseCardProps) => {
           ))}
         </div>
       </CardContent>
-      
       <CardFooter className="px-4 pb-4 pt-0">
         <span className="text-xs text-muted-foreground">{displayYear}</span>
       </CardFooter>
