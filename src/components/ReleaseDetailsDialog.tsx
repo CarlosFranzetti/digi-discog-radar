@@ -37,27 +37,15 @@ interface ReleaseDetailsDialogProps {
 }
 
 export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDetailsDialogProps) => {
-  const playersRef = useRef<Record<number, any>>({});
+  const iframeRefs = useRef<Record<number, HTMLIFrameElement | null>>({});
   const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
-  const [apiReady, setApiReady] = useState(false);
-  const [playersReady, setPlayersReady] = useState<Record<number, boolean>>({});
+
+  // Reset playing video when dialog closes
   useEffect(() => {
-    const onApiReady = () => setApiReady(true);
-    if (window.YT?.Player) {
-      setApiReady(true);
-      return;
+    if (!open) {
+      setPlayingVideoIndex(null);
     }
-    (window as any).onYouTubeIframeAPIReady = onApiReady;
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
-    return () => {
-      if ((window as any).onYouTubeIframeAPIReady === onApiReady) {
-        (window as any).onYouTubeIframeAPIReady = undefined;
-      }
-    };
-  }, []);
+  }, [open]);
 
   
 
@@ -96,59 +84,20 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
     });
   };
 
-  // Initialize YT players when API is ready and dialog is open
-  useEffect(() => {
-    if (!apiReady || !open) return;
-
-    videoItems.forEach((item, idx) => {
-      if (playersRef.current[idx]) return;
-      try {
-        playersRef.current[idx] = new window.YT.Player(`yt-player-${idx}`, {
-          videoId: item.videoId,
-          playerVars: { enablejsapi: 1, origin: window.location.origin, rel: 0, modestbranding: 1 },
-          events: {
-            onReady: () => setPlayersReady(prev => ({ ...prev, [idx]: true })),
-          },
-        });
-      } catch (e) {
-        console.error('YT player init failed', e);
-      }
-    });
-
-    return () => {
-      Object.values(playersRef.current).forEach((p) => {
-        try { (p as any)?.destroy?.(); } catch {}
-      });
-      playersRef.current = {};
-      setPlayersReady({});
-    };
-  }, [apiReady, open, release?.id]);
   const handleTrackClick = (videoIndex: number) => {
-    try {
-      if (!playersReady[videoIndex]) {
-        console.warn('YouTube player not ready yet');
-        return;
-      }
-      const player = playersRef.current[videoIndex];
-      if (!player || typeof player.playVideo !== 'function') {
-        console.warn('YouTube player not ready yet');
-        return;
-      }
-      // Pause previous playing video if switching
-      if (playingVideoIndex !== null && playingVideoIndex !== videoIndex) {
-        const prev = playersRef.current[playingVideoIndex];
-        try { prev?.pauseVideo?.(); } catch {}
-      }
-      // Toggle playback
-      if (playingVideoIndex === videoIndex) {
-        player.pauseVideo();
-        setPlayingVideoIndex(null);
-      } else {
-        player.playVideo();
-        setPlayingVideoIndex(videoIndex);
-      }
-    } catch (error) {
-      console.error('Error controlling YouTube video:', error);
+    const videoId = videoItems[videoIndex]?.videoId;
+    if (!videoId) return;
+    
+    // If clicking the same video, toggle it
+    if (playingVideoIndex === videoIndex) {
+      setPlayingVideoIndex(null);
+    } else {
+      setPlayingVideoIndex(videoIndex);
+      // Scroll to video section
+      setTimeout(() => {
+        const videoElement = document.getElementById(`video-${videoIndex}`);
+        videoElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
     }
   };
 
@@ -336,12 +285,20 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                 <div className="space-y-3">
                   {videoItems.map((item, idx) => (
                     <div 
-                      key={idx} 
+                      key={idx}
+                      id={`video-${idx}`}
                       className="space-y-2 rounded-lg transition-all duration-300"
                     >
                       <p className="text-sm font-medium">{item.video.title}</p>
                       <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-secondary">
-                        <div id={`yt-player-${idx}`} className="absolute inset-0 w-full h-full" />
+                        <iframe
+                          ref={(el) => { iframeRefs.current[idx] = el; }}
+                          src={`https://www.youtube.com/embed/${item.videoId}?enablejsapi=1&origin=${window.location.origin}${playingVideoIndex === idx ? '&autoplay=1' : ''}`}
+                          className="absolute inset-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          title={item.video.title}
+                        />
                       </div>
                     </div>
                   ))}
