@@ -40,6 +40,7 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
   const playersRef = useRef<Record<number, any>>({});
   const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
   const [apiReady, setApiReady] = useState(false);
+  const [playersReady, setPlayersReady] = useState<Record<number, boolean>>({});
   useEffect(() => {
     const onApiReady = () => setApiReady(true);
     if (window.YT?.Player) {
@@ -104,7 +105,10 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
       try {
         playersRef.current[idx] = new window.YT.Player(`yt-player-${idx}`, {
           videoId: item.videoId,
-          playerVars: { origin: window.location.origin, rel: 0, modestbranding: 1 },
+          playerVars: { enablejsapi: 1, origin: window.location.origin, rel: 0, modestbranding: 1 },
+          events: {
+            onReady: () => setPlayersReady(prev => ({ ...prev, [idx]: true })),
+          },
         });
       } catch (e) {
         console.error('YT player init failed', e);
@@ -116,10 +120,15 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
         try { (p as any)?.destroy?.(); } catch {}
       });
       playersRef.current = {};
+      setPlayersReady({});
     };
   }, [apiReady, open, release?.id]);
   const handleTrackClick = (videoIndex: number) => {
     try {
+      if (!playersReady[videoIndex]) {
+        console.warn('YouTube player not ready yet');
+        return;
+      }
       const player = playersRef.current[videoIndex];
       if (!player || typeof player.playVideo !== 'function') {
         console.warn('YouTube player not ready yet');
