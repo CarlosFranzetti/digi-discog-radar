@@ -138,7 +138,10 @@ const Index = () => {
     if (results) {
       setLabelScanActive(true);
       setSelectedLabel(null);
-      setLabelCurrentPage(1); // Reset to first page on new results
+      setLabelCurrentPage(1);
+      // Clear search results
+      setSearchQuery("");
+      setSearchTrigger(0);
     }
   };
 
