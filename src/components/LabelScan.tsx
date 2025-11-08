@@ -245,10 +245,14 @@ export const LabelScan = ({
       });
       return;
     }
-    setSearchTrigger(prev => prev + 1);
+    
+    // Immediately notify parent to clear search results
     if (onResults) {
-      setIsPopoverOpen(false); // Close popover when showing results externally
+      onResults(null, true);
+      setIsPopoverOpen(false);
     }
+    
+    setSearchTrigger(prev => prev + 1);
   };
 
   const handleLabelClick = (labelName: string) => {

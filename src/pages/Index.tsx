@@ -135,13 +135,17 @@ const Index = () => {
   const handleLabelScanResults = (results: any, isLoading: boolean) => {
     setLabelResults(results);
     setIsLoadingLabels(isLoading);
+    
+    // Clear search results when label scan starts or receives results
+    if (isLoading || results) {
+      setSearchQuery("");
+      setSearchTrigger(0);
+    }
+    
     if (results) {
       setLabelScanActive(true);
       setSelectedLabel(null);
       setLabelCurrentPage(1);
-      // Clear search results
-      setSearchQuery("");
-      setSearchTrigger(0);
     }
   };
 
