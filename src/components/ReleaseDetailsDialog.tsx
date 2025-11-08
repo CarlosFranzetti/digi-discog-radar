@@ -58,9 +58,9 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
     };
   }, []);
 
-  if (!release) return null;
+  
 
-  const mainImage = release.images?.find(img => img.type === 'primary')?.uri || release.images?.[0]?.uri;
+  
 
   const getYouTubeVideoId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -69,7 +69,7 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
   };
 
   // Prepare YouTube videos with valid IDs
-  const videoItems = (release.videos ?? [])
+  const videoItems = (release?.videos ?? [])
     .map((video, originalIndex) => {
       const videoId = getYouTubeVideoId(video.uri);
       return videoId ? { video, videoId, originalIndex } : null;
@@ -142,6 +142,10 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
       console.error('Error controlling YouTube video:', error);
     }
   };
+
+  if (!release) return null;
+
+  const mainImage = release.images?.find(img => img.type === 'primary')?.uri || release.images?.[0]?.uri;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
