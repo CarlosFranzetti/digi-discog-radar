@@ -44,6 +44,7 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
   useEffect(() => {
     if (!open) {
       setPlayingVideoIndex(null);
+      pauseAllPlayers();
     }
   }, [open]);
 
@@ -51,6 +52,37 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
 
   
 
+  // Player control helpers using YouTube postMessage API
+  const sendPlayerCommand = (index: number, command: 'playVideo' | 'pauseVideo') => {
+    const frame = iframeRefs.current[index];
+    try {
+      frame?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func: command, args: [] }),
+        'https://www.youtube.com'
+      );
+    } catch (e) {
+      // no-op
+    }
+  };
+
+  const pauseAllPlayers = () => {
+    Object.keys(iframeRefs.current).forEach((key) => {
+      const i = Number(key);
+      sendPlayerCommand(i, 'pauseVideo');
+    });
+  };
+
+  const playWithRetry = (index: number, attempts = 6) => {
+    if (attempts <= 0) return;
+    const frame = iframeRefs.current[index];
+    if (frame?.contentWindow) {
+      sendPlayerCommand(index, 'playVideo');
+    } else {
+      setTimeout(() => playWithRetry(index, attempts - 1), 200);
+    }
+  };
+
+  // Extract YouTube ID from URLs
   const getYouTubeVideoId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -88,11 +120,16 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
     const videoId = videoItems[videoIndex]?.videoId;
     if (!videoId) return;
     
-    // Toggle play/pause for the video
     if (playingVideoIndex === videoIndex) {
+      // Pause currently playing
+      sendPlayerCommand(videoIndex, 'pauseVideo');
       setPlayingVideoIndex(null);
     } else {
+      // Pause others and play selected
+      pauseAllPlayers();
       setPlayingVideoIndex(videoIndex);
+      // Ensure player is ready, then play
+      playWithRetry(videoIndex);
     }
   };
 
@@ -291,10 +328,12 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                       <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-secondary">
                         <iframe
                           ref={(el) => { iframeRefs.current[idx] = el; }}
-                          src={`https://www.youtube.com/embed/${item.videoId}?enablejsapi=1&origin=${window.location.origin}${playingVideoIndex === idx ? '&autoplay=1' : ''}`}
+                          src={`https://www.youtube.com/embed/${item.videoId}?enablejsapi=1&origin=${window.location.origin}&playsinline=1&rel=0&modestbranding=1`}
                           className="absolute inset-0 w-full h-full"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
+                          loading="eager"
+                          referrerPolicy="strict-origin-when-cross-origin"
                           title={item.video.title}
                         />
                       </div>
