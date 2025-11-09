@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Music, Calendar, Globe, Tag, Disc, Building2, Hash, Barcode, Play, Pause, Video } from "lucide-react";
@@ -88,16 +88,11 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
     const videoId = videoItems[videoIndex]?.videoId;
     if (!videoId) return;
     
-    // If clicking the same video, toggle it
+    // Toggle play/pause for the video
     if (playingVideoIndex === videoIndex) {
       setPlayingVideoIndex(null);
     } else {
       setPlayingVideoIndex(videoIndex);
-      // Scroll to video section
-      setTimeout(() => {
-        const videoElement = document.getElementById(`video-${videoIndex}`);
-        videoElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
     }
   };
 
@@ -110,6 +105,9 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-2xl line-clamp-2">{release.title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Release details and information
+          </DialogDescription>
         </DialogHeader>
         
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">

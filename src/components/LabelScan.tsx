@@ -14,6 +14,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -405,6 +406,9 @@ export const LabelScan = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
+            <DialogDescription className="sr-only">
+              List of releases for this label
+            </DialogDescription>
           </DialogHeader>
           
           {isLoadingReleases ? (
