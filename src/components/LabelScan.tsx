@@ -61,17 +61,17 @@ export const LabelScan = ({
   const [selectedReleaseId, setSelectedReleaseId] = useState<number | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  // Prefill from global filters when provided
+  // Prefill from global filters only on mount (not on filter changes)
   useEffect(() => {
     if (!initialFilters) return;
-    if (!country && initialFilters.country) setCountry(initialFilters.country);
-    if (!yearFrom && initialFilters.yearFrom) setYearFrom(initialFilters.yearFrom);
-    if (!yearTo && initialFilters.yearTo) setYearTo(initialFilters.yearTo);
-    if (!genre && initialFilters.genre) {
+    if (initialFilters.country) setCountry(initialFilters.country);
+    if (initialFilters.yearFrom) setYearFrom(initialFilters.yearFrom);
+    if (initialFilters.yearTo) setYearTo(initialFilters.yearTo);
+    if (initialFilters.genre) {
       const match = GENRES.find((g) => g.toLowerCase() === initialFilters.genre!.toLowerCase());
       if (match) setGenre(match);
     }
-  }, [initialFilters]);
+  }, []); // Empty deps - only run once on mount
 
   const { data: labelResults, isLoading } = useQuery({
     queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, minReleases, searchTrigger],
@@ -170,18 +170,34 @@ export const LabelScan = ({
         };
       }
 
-      // Get approximate TOTAL release counts per label for the top N labels to respect rate limits
+      // Get approximate TOTAL release counts per label - batch in smaller groups with delays
       const minReleasesNum = parseInt(minReleases);
       labels.sort((a, b) => (b.matchedCount || 0) - (a.matchedCount || 0));
-      const topForCounting = labels.slice(0, Math.min(100, labels.length));
+      const topForCounting = labels.slice(0, Math.min(50, labels.length)); // Reduce to 50
 
       try {
-        const counts = await Promise.all(
-          topForCounting.map(async (l: any) => {
-            const resp = await discogsService.search({ type: 'release', label: l.title, per_page: 1 });
-            return { title: l.title, total: resp?.pagination?.items || l.matchedCount };
-          })
-        );
+        const counts: Array<{ title: string; total: number }> = [];
+        const batchSize = 5; // Process 5 at a time
+        
+        for (let i = 0; i < topForCounting.length; i += batchSize) {
+          const batch = topForCounting.slice(i, i + batchSize);
+          const batchResults = await Promise.all(
+            batch.map(async (l: any) => {
+              try {
+                const resp = await discogsService.search({ type: 'release', label: l.title, per_page: 1 });
+                return { title: l.title, total: resp?.pagination?.items || l.matchedCount };
+              } catch {
+                return { title: l.title, total: l.matchedCount };
+              }
+            })
+          );
+          counts.push(...batchResults);
+          // Add delay between batches
+          if (i + batchSize < topForCounting.length) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+        
         const totalMap = new Map(counts.map((c) => [c.title, c.total]));
         labels = labels.map((l: any) => ({
           ...l,

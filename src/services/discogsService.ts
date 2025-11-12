@@ -55,6 +55,29 @@ export interface DiscogsSearchResult {
   };
 }
 
+// Helper to add delay between requests
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Retry logic with exponential backoff
+async function fetchWithRetry(url: string, retries = 3, delayMs = 1000): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+      if (response.status === 429 || response.status === 503) {
+        // Rate limited or service unavailable, wait and retry
+        await delay(delayMs * (i + 1));
+        continue;
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await delay(delayMs * (i + 1));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 export const discogsService = {
   async search(params: DiscogsSearchParams): Promise<DiscogsSearchResult> {
     const queryParams = new URLSearchParams();
@@ -76,24 +99,14 @@ export const discogsService = {
     queryParams.append('key', DISCOGS_KEY);
     queryParams.append('secret', DISCOGS_SECRET);
 
-    const response = await fetch(`${DISCOGS_API_URL}/database/search?${queryParams}`);
-    
-    if (!response.ok) {
-      throw new Error(`Discogs API error: ${response.statusText}`);
-    }
-
+    const response = await fetchWithRetry(`${DISCOGS_API_URL}/database/search?${queryParams}`);
     return response.json();
   },
 
   async getRelease(releaseId: number) {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${DISCOGS_API_URL}/releases/${releaseId}?key=${DISCOGS_KEY}&secret=${DISCOGS_SECRET}`
     );
-    
-    if (!response.ok) {
-      throw new Error(`Discogs API error: ${response.statusText}`);
-    }
-
     return response.json();
   },
 
