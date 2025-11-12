@@ -99,7 +99,7 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
 
   // Match tracks with YouTube videos based on title similarity
   const findMatchingVideo = (trackTitle: string): number | null => {
-    if (!videoItems.length) return null;
+    if (!videoItems.length || !trackTitle) return null;
     
     const normalizeTitle = (title: string) => 
       title.toLowerCase()
@@ -108,15 +108,22 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
         .trim();
     
     const normalizedTrack = normalizeTitle(trackTitle);
+    if (!normalizedTrack) return null;
     
-    return videoItems.findIndex(({ video }) => {
-      const normalizedVideo = normalizeTitle(video.title);
+    const matchIndex = videoItems.findIndex(({ video }) => {
+      const normalizedVideo = normalizeTitle(video?.title || '');
+      if (!normalizedVideo) return false;
       // Check if track title is in video title or vice versa
       return normalizedVideo.includes(normalizedTrack) || normalizedTrack.includes(normalizedVideo);
     });
+    
+    return matchIndex >= 0 ? matchIndex : null;
   };
 
   const handleTrackClick = (videoIndex: number) => {
+    // Safety checks
+    if (videoIndex < 0 || videoIndex >= videoItems.length) return;
+    
     const videoId = videoItems[videoIndex]?.videoId;
     if (!videoId) return;
     
@@ -280,8 +287,10 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                 </div>
                 <div className="space-y-1">
                   {release.tracklist.map((track, idx) => {
+                    if (!track?.title) return null;
+                    
                     const videoIndex = findMatchingVideo(track.title);
-                    const hasVideo = videoIndex !== null && videoIndex >= 0;
+                    const hasVideo = videoIndex !== null && videoIndex >= 0 && videoIndex < videoItems.length;
                     
                     return (
                       <div 
@@ -289,11 +298,11 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                         className={`flex items-center justify-between text-sm py-1 px-2 rounded transition-colors ${
                           hasVideo ? 'hover:bg-accent/50 cursor-pointer' : ''
                         }`}
-                        onClick={hasVideo ? () => handleTrackClick(videoIndex) : undefined}
+                        onClick={hasVideo && videoIndex !== null ? () => handleTrackClick(videoIndex) : undefined}
                       >
-                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3">
                           <span className="text-muted-foreground w-8 text-right">{track.position}</span>
-                          {hasVideo && (
+                          {hasVideo && videoIndex !== null && (
                             playingVideoIndex === videoIndex 
                               ? <Pause className="h-3 w-3 text-primary" />
                               : <Play className="h-3 w-3 text-muted-foreground" />
@@ -305,7 +314,7 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
                         )}
                       </div>
                     );
-                  })}
+                  }).filter(Boolean)}
                 </div>
               </div>
             )}
