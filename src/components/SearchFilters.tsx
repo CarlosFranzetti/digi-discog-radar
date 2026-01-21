@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,13 +27,16 @@ export const SearchFilters = ({ filters, onChange, onSearch }: SearchFiltersProp
   const [yearFromTouched, setYearFromTouched] = useState(false);
   const [yearToTouched, setYearToTouched] = useState(false);
   const currentYear = new Date().getFullYear();
+  const didInitRef = useRef(false);
 
   // Set demo values on mount
   useEffect(() => {
+    if (didInitRef.current) return;
     if (!yearFromTouched && !filters.yearFrom) {
       onChange({ ...filters, yearFrom: '1980', yearTo: currentYear.toString() });
     }
-  }, []);
+    didInitRef.current = true;
+  }, [currentYear, filters, onChange, yearFromTouched]);
 
   const smartYearParse = (value: string): string => {
     if (!value) return '';

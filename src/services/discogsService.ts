@@ -21,7 +21,7 @@ export interface DiscogsSearchParams {
 export interface DiscogsRelease {
   id: number;
   title: string;
-  year?: string;
+  year?: string | number;
   country?: string;
   format?: string[];
   label?: string[];

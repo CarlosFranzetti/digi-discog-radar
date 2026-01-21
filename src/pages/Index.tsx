@@ -5,10 +5,15 @@ import { SearchFilters } from "@/components/SearchFilters";
 import { ReleaseCard } from "@/components/ReleaseCard";
 import { ReleaseListItem } from "@/components/ReleaseListItem";
 import { ReleaseDetailsDialog } from "@/components/ReleaseDetailsDialog";
-import { LabelScan } from "@/components/LabelScan";
+import { LabelScan, type LabelScanLabel, type LabelScanResult } from "@/components/LabelScan";
 import { LabelCard } from "@/components/LabelCard";
 import { LabelListItem } from "@/components/LabelListItem";
-import { discogsService, DiscogsSearchParams } from "@/services/discogsService";
+import {
+  discogsService,
+  type DiscogsRelease,
+  type DiscogsSearchParams,
+  type DiscogsSearchResult,
+} from "@/services/discogsService";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Disc3, LayoutGrid, List, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,7 +58,7 @@ const Index = () => {
   
   // Label scan state
   const [labelScanActive, setLabelScanActive] = useState(false);
-  const [labelResults, setLabelResults] = useState<any>(null);
+  const [labelResults, setLabelResults] = useState<LabelScanResult | null>(null);
   const [labelViewMode, setLabelViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
@@ -132,7 +137,7 @@ const Index = () => {
     setDialogOpen(true);
   };
 
-  const handleLabelScanResults = (results: any, isLoading: boolean) => {
+  const handleLabelScanResults = (results: LabelScanResult | null, isLoading: boolean) => {
     setLabelResults(results);
     setIsLoadingLabels(isLoading);
     
@@ -167,10 +172,10 @@ const Index = () => {
 
   // Sort and paginate label results
   const sortedAndPaginatedLabels = labelResults?.results ? (() => {
-    let sorted = [...labelResults.results];
+    const sorted = [...labelResults.results];
     
     // Sort
-    sorted.sort((a: any, b: any) => {
+    sorted.sort((a: LabelScanLabel, b: LabelScanLabel) => {
       let comparison = 0;
       if (labelSortBy === 'name') {
         comparison = a.title.localeCompare(b.title);
@@ -196,7 +201,7 @@ const Index = () => {
   })() : null;
 
   // Query for label releases
-  const { data: labelReleases, isLoading: isLoadingLabelReleases } = useQuery({
+  const { data: labelReleases, isLoading: isLoadingLabelReleases } = useQuery<DiscogsSearchResult>({
     queryKey: ['label-releases', selectedLabel],
     queryFn: async () => {
       return discogsService.search({
@@ -265,7 +270,13 @@ const Index = () => {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Select value={labelSortBy} onValueChange={(value: any) => { setLabelSortBy(value); setLabelCurrentPage(1); }}>
+                <Select
+                  value={labelSortBy}
+                  onValueChange={(value) => {
+                    setLabelSortBy(value as 'name' | 'releases' | 'year');
+                    setLabelCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="w-[130px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -275,7 +286,13 @@ const Index = () => {
                   </SelectContent>
                 </Select>
                 
-                <Select value={labelSortOrder} onValueChange={(value: any) => { setLabelSortOrder(value); setLabelCurrentPage(1); }}>
+                <Select
+                  value={labelSortOrder}
+                  onValueChange={(value) => {
+                    setLabelSortOrder(value as 'asc' | 'desc');
+                    setLabelCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="w-[100px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -330,7 +347,7 @@ const Index = () => {
             {!isLoadingLabels && sortedAndPaginatedLabels.results.length > 0 && (
               labelViewMode === 'grid' ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {sortedAndPaginatedLabels.results.map((label: any) => (
+                  {sortedAndPaginatedLabels.results.map((label) => (
                     <LabelCard
                       key={label.id}
                       label={label}
@@ -340,7 +357,7 @@ const Index = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {sortedAndPaginatedLabels.results.map((label: any) => (
+                  {sortedAndPaginatedLabels.results.map((label) => (
                     <LabelListItem
                       key={label.id}
                       label={label}
@@ -457,7 +474,7 @@ const Index = () => {
             {!isLoadingLabelReleases && labelReleases?.results && labelReleases.results.length > 0 && (
               releaseViewMode === 'grid' ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {labelReleases.results.map((release: any) => (
+                  {labelReleases.results.map((release: DiscogsRelease) => (
                     <ReleaseCard
                       key={release.id}
                       release={release}
@@ -467,7 +484,7 @@ const Index = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {labelReleases.results.map((release: any) => (
+                  {labelReleases.results.map((release: DiscogsRelease) => (
                     <ReleaseListItem
                       key={release.id}
                       release={release}
@@ -510,7 +527,7 @@ const Index = () => {
               </div>
               
               <div className="flex flex-wrap items-center gap-2">
-                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'year' | 'title' | 'artist')}>
                   <SelectTrigger className="w-[100px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -521,7 +538,7 @@ const Index = () => {
                   </SelectContent>
                 </Select>
                 
-                <Select value={sortOrder} onValueChange={(value: any) => setSortOrder(value)}>
+                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
                   <SelectTrigger className="w-[100px]">
                     <SelectValue />
                   </SelectTrigger>

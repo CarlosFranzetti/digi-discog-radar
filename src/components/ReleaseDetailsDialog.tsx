@@ -2,12 +2,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Music, Calendar, Globe, Tag, Disc, Building2, Hash, Barcode, Play, Pause, Video } from "lucide-react";
-import { useRef, useEffect, useState } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 
 // Extend Window interface for YouTube IFrame API
 declare global {
   interface Window {
-    YT: any;
+    YT: unknown;
   }
 }
 
@@ -40,20 +40,8 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
   const iframeRefs = useRef<Record<number, HTMLIFrameElement | null>>({});
   const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
 
-  // Reset playing video when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setPlayingVideoIndex(null);
-      pauseAllPlayers();
-    }
-  }, [open]);
-
-  
-
-  
-
   // Player control helpers using YouTube postMessage API
-  const sendPlayerCommand = (index: number, command: 'playVideo' | 'pauseVideo') => {
+  const sendPlayerCommand = useCallback((index: number, command: 'playVideo' | 'pauseVideo') => {
     const frame = iframeRefs.current[index];
     try {
       frame?.contentWindow?.postMessage(
@@ -63,14 +51,14 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
     } catch (e) {
       // no-op
     }
-  };
+  }, []);
 
-  const pauseAllPlayers = () => {
+  const pauseAllPlayers = useCallback(() => {
     Object.keys(iframeRefs.current).forEach((key) => {
       const i = Number(key);
       sendPlayerCommand(i, 'pauseVideo');
     });
-  };
+  }, [sendPlayerCommand]);
 
   const playWithRetry = (index: number, attempts = 6) => {
     if (attempts <= 0) return;
@@ -81,6 +69,14 @@ export const ReleaseDetailsDialog = ({ release, open, onOpenChange }: ReleaseDet
       setTimeout(() => playWithRetry(index, attempts - 1), 200);
     }
   };
+
+  // Reset playing video when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setPlayingVideoIndex(null);
+      pauseAllPlayers();
+    }
+  }, [open, pauseAllPlayers]);
 
   // Extract YouTube ID from URLs
   const getYouTubeVideoId = (url: string) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ScanSearch, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,41 @@ import {
 import { LabelCard } from "@/components/LabelCard";
 import { ReleaseCard } from "@/components/ReleaseCard";
 import { ReleaseDetailsDialog } from "@/components/ReleaseDetailsDialog";
-import { discogsService } from "@/services/discogsService";
+import {
+  discogsService,
+  type DiscogsRelease,
+  type DiscogsSearchParams,
+  type DiscogsSearchResult,
+} from "@/services/discogsService";
 import { useToast } from "@/hooks/use-toast";
+
+type LabelScanFilters = Partial<{
+  country: string;
+  yearFrom: string;
+  yearTo: string;
+  genre: string;
+}>;
+
+export interface LabelScanLabel {
+  id: string;
+  title: string;
+  thumb?: string;
+  country?: string;
+  resource_url?: string;
+  matchedCount?: number;
+  releaseCount?: number;
+}
+
+export interface LabelScanResult {
+  results: LabelScanLabel[];
+  pagination: {
+    page: number;
+    pages: number;
+    per_page: number;
+    items: number;
+    urls: Record<string, string>;
+  };
+}
 
 const GENRES = [
   "Acid",
@@ -42,14 +75,15 @@ const GENRES = [
   "Trance"
 ].sort((a, b) => a.localeCompare(b));
 
-export const LabelScan = ({ 
+export const LabelScan = ({
   initialFilters,
-  onResults 
-}: { 
-  initialFilters?: Partial<{ country: string; yearFrom: string; yearTo: string; genre: string }>;
-  onResults?: (results: any, isLoading: boolean) => void;
+  onResults,
+}: {
+  initialFilters?: LabelScanFilters;
+  onResults?: (results: LabelScanResult | null, isLoading: boolean) => void;
 }) => {
   const { toast } = useToast();
+  const initialFiltersRef = useRef(initialFilters);
   const [country, setCountry] = useState("");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
@@ -63,25 +97,26 @@ export const LabelScan = ({
 
   // Prefill from global filters only on mount (not on filter changes)
   useEffect(() => {
-    if (!initialFilters) return;
-    if (initialFilters.country) setCountry(initialFilters.country);
-    if (initialFilters.yearFrom) setYearFrom(initialFilters.yearFrom);
-    if (initialFilters.yearTo) setYearTo(initialFilters.yearTo);
-    if (initialFilters.genre) {
-      const match = GENRES.find((g) => g.toLowerCase() === initialFilters.genre!.toLowerCase());
+    const filters = initialFiltersRef.current;
+    if (!filters) return;
+    if (filters.country) setCountry(filters.country);
+    if (filters.yearFrom) setYearFrom(filters.yearFrom);
+    if (filters.yearTo) setYearTo(filters.yearTo);
+    if (filters.genre) {
+      const match = GENRES.find((g) => g.toLowerCase() === filters.genre!.toLowerCase());
       if (match) setGenre(match);
     }
   }, []); // Empty deps - only run once on mount
 
-  const { data: labelResults, isLoading } = useQuery({
+  const { data: labelResults, isLoading } = useQuery<LabelScanResult>({
     queryKey: ['label-scan', country, yearFrom, yearTo, genre, similarTo, minReleases, searchTrigger],
     queryFn: async () => {
       if (onResults) onResults(null, true);
       // Build search query - prioritize "similar to" field if provided
-      let searchQuery = similarTo || '';
+      const searchQuery = similarTo || '';
 
       // Build base search (broad) and filter client-side for flexibility
-      const searchParams: any = {
+      const searchParams: DiscogsSearchParams = {
         type: 'release',
         per_page: 100,
       };
@@ -96,13 +131,13 @@ export const LabelScan = ({
 
       // Do NOT pass genre/year to API directly to avoid over-restricting; filter client-side instead
       const searchResponse = await discogsService.search(searchParams);
-      const releases: any[] = searchResponse?.results || [];
+      const releases: DiscogsRelease[] = searchResponse?.results || [];
 
       const term = (genre || '').toLowerCase().trim();
       const fromYear = yearFrom ? parseInt(yearFrom, 10) : undefined;
       const toYear = yearTo ? parseInt(yearTo, 10) : undefined;
 
-      const matchesGenre = (r: any) => {
+      const matchesGenre = (r: DiscogsRelease) => {
         if (!term) return true;
         const styles: string[] = Array.isArray(r.style) ? r.style : [];
         const genres: string[] = Array.isArray(r.genre) ? r.genre : [];
@@ -111,7 +146,7 @@ export const LabelScan = ({
         return all.some((g) => g.includes(term));
       };
 
-      const matchesYear = (r: any) => {
+      const matchesYear = (r: DiscogsRelease) => {
         if (!fromYear && !toYear) return true;
         const y = typeof r.year === 'number' ? r.year : parseInt(String(r.year || ''), 10);
         if (Number.isNaN(y)) return false;
@@ -120,7 +155,7 @@ export const LabelScan = ({
         return true;
       };
 
-      const matchesCountry = (r: any) => {
+      const matchesCountry = (r: DiscogsRelease) => {
         if (!country) return true;
         return String(r.country || '').toLowerCase() === country.toLowerCase();
       };
@@ -132,8 +167,8 @@ export const LabelScan = ({
       }
 
       // Extract unique labels and count matched releases
-      const labelMap = new Map<string, any>();
-      filtered.forEach((release: any) => {
+      const labelMap = new Map<string, LabelScanLabel>();
+      filtered.forEach((release: DiscogsRelease) => {
         const labels: string[] = Array.isArray(release.label) ? release.label : (release.label ? [release.label] : []);
         labels.forEach((labelName: string) => {
           const existing = labelMap.get(labelName);
@@ -166,12 +201,12 @@ export const LabelScan = ({
       if (labels.length === 0) {
         return {
           results: [],
-          pagination: { page: 1, pages: 1, per_page: 0, items: 0, urls: {} },
+          pagination: { page: 1, pages: 1, per_page: 0, items: 0, urls: {} as Record<string, string> },
         };
       }
 
       // Get approximate TOTAL release counts per label - batch in smaller groups with delays
-      const minReleasesNum = parseInt(minReleases);
+      const minReleasesNum = parseInt(minReleases, 10);
       labels.sort((a, b) => (b.matchedCount || 0) - (a.matchedCount || 0));
       const topForCounting = labels.slice(0, Math.min(50, labels.length)); // Reduce to 50
 
@@ -182,7 +217,7 @@ export const LabelScan = ({
         for (let i = 0; i < topForCounting.length; i += batchSize) {
           const batch = topForCounting.slice(i, i + batchSize);
           const batchResults = await Promise.all(
-            batch.map(async (l: any) => {
+            batch.map(async (l) => {
               try {
                 const resp = await discogsService.search({ type: 'release', label: l.title, per_page: 1 });
                 return { title: l.title, total: resp?.pagination?.items || l.matchedCount };
@@ -199,23 +234,23 @@ export const LabelScan = ({
         }
         
         const totalMap = new Map(counts.map((c) => [c.title, c.total]));
-        labels = labels.map((l: any) => ({
+        labels = labels.map((l) => ({
           ...l,
           releaseCount: totalMap.get(l.title) ?? l.matchedCount,
         }));
       } catch {
         // Fallback to matchedCount if counting fails
-        labels = labels.map((l: any) => ({ ...l, releaseCount: l.matchedCount }));
+        labels = labels.map((l) => ({ ...l, releaseCount: l.matchedCount }));
       }
 
       // Final sort by total releases desc, then by matchedCount desc
       // Filter by maximum releases (200+ means no upper limit)
       const uniqueLabels = labels
-        .filter((l: any) => {
+        .filter((l) => {
           if (minReleasesNum === 200) return true; // 200+ means no limit
           return (l.releaseCount || 0) <= minReleasesNum;
         })
-        .sort((a: any, b: any) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0));
+        .sort((a, b) => (b.releaseCount || 0) - (a.releaseCount || 0) || (b.matchedCount || 0) - (a.matchedCount || 0));
 
       const result = {
         results: uniqueLabels,
@@ -224,7 +259,7 @@ export const LabelScan = ({
           pages: 1,
           per_page: uniqueLabels.length,
           items: uniqueLabels.length,
-          urls: {},
+          urls: {} as Record<string, string>,
         },
       };
       
@@ -236,7 +271,7 @@ export const LabelScan = ({
     refetchOnWindowFocus: false,
   });
 
-  const { data: labelReleases, isLoading: isLoadingReleases } = useQuery({
+  const { data: labelReleases, isLoading: isLoadingReleases } = useQuery<DiscogsSearchResult>({
     queryKey: ['label-releases', selectedLabel],
     queryFn: async () => {
       return discogsService.search({
@@ -382,10 +417,10 @@ export const LabelScan = ({
                   Found {labelResults.results.length} labels
                 </p>
                 <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
-                  {labelResults.results.map((label: any) => (
-                    <LabelCard
-                      key={label.id}
-                      label={label}
+          {labelResults.results.map((label) => (
+            <LabelCard
+              key={label.id}
+              label={label}
                       onClick={() => handleLabelClick(label.title)}
                     />
                   ))}
@@ -431,7 +466,7 @@ export const LabelScan = ({
             <div className="text-center py-8">Loading releases...</div>
           ) : labelReleases && labelReleases.results.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {labelReleases.results.map((release: any) => (
+              {labelReleases.results.map((release) => (
                 <ReleaseCard
                   key={release.id}
                   release={release}
