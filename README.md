@@ -1,88 +1,78 @@
-# 🎵 Welcome to Digi Discog Radar! 🎸
+# Digi Discog Radar
 
-Your digital music discovery companion! 🚀
+Discogs exploration app built with Vite, React, TypeScript, Tailwind, and shadcn-ui.
 
-## 📊 Project Info
+## Stack
 
-**🌐 URL**: [Project Dashboard](#)
+- Frontend: Vite + React + TypeScript
+- UI: Tailwind + shadcn-ui
+- Serverless API: Vercel Functions (`/api/discogs/*`)
+- Optional Supabase: existing project integration remains available for non-function concerns
 
-## 🛠️ How Can I Edit This Code?
+## Local Development
 
-There are several awesome ways to edit your application! 🎨
-
-### **🌐 Option 1: Web Interface**
-
-Simply visit the [Project Dashboard](#) and modify directly there! ✨
-
-Changes made via the dashboard will be committed automatically to this repo. Magic! 🪄
-
-### **💻 Option 2: Use Your Preferred IDE**
-
-Work locally with your favorite code editor! 🖥️
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected on the dashboard.
-
-**📋 Requirements**: Node.js & npm - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Install dependencies:
 
 ```sh
-# 🚀 Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+npm install
+```
 
-# 📂 Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Run frontend only:
 
-# 📦 Step 3: Install the necessary dependencies.
-npm i
-
-# 🎬 Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
 npm run dev
 ```
 
-### **✏️ Option 3: Edit Directly in GitHub**
+Run Vercel full-stack local environment (frontend + API routes):
 
-Quick edits right in your browser! 🌐
+```sh
+npm run dev:vercel
+```
 
-- 📁 Navigate to the desired file(s)
-- ✏️ Click the "Edit" button (pencil icon) at the top right of the file view
-- 💾 Make your changes and commit them
+## Environment Variables
 
-### **☁️ Option 4: Use GitHub Codespaces**
+Create `.env.local` from `.env.example` and set values.
 
-Develop in the cloud! ☁️
+Required for Vercel Functions:
 
-- 🏠 Navigate to the main page of your repository
-- 💚 Click on the "Code" button (green button) near the top right
-- 🔖 Select the "Codespaces" tab
-- ✨ Click on "New codespace" to launch a new Codespace environment
-- 🎯 Edit files directly within the Codespace and commit and push your changes once you're done
+- `DISCOGS_KEY`
+- `DISCOGS_SECRET`
 
-## 🧰 What Technologies Are Used?
+Optional for frontend:
 
-This project is built with modern, powerful tools! ⚡
+- `VITE_API_BASE_URL` (leave empty for same-origin `/api`; set only when frontend and API are on different origins)
 
-- ⚡ **Vite** - Lightning fast build tool
-- 📘 **TypeScript** - Type-safe JavaScript
-- ⚛️ **React** - UI library for building interfaces
-- 🎨 **shadcn-ui** - Beautiful UI components
-- 🎭 **Tailwind CSS** - Utility-first CSS framework
+Existing Supabase keys (if used elsewhere in the app):
 
-## 🚀 How Can I Deploy This Project?
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-Deploy directly from the dashboard using the Publish option! 🎉
+## API Endpoints
 
-Easy as 1-2-3! Just click and go live! 🌟
+The frontend `discogsService` now calls these internal endpoints:
 
-## 🌐 Can I Connect a Custom Domain?
+- `GET /api/discogs/search`
+- `GET /api/discogs/releases/:id`
+- `GET /api/discogs/users/:username/collection`
+- `GET /api/discogs/artists/search`
 
-Yes, you can! 🎊
+These routes proxy to Discogs and inject credentials server-side.
 
-To connect a domain:
-1. 🔧 Navigate to Settings > Domains
-2. 🔗 Click Connect Domain
-3. 📖 Read the documentation for more details
+## Build and Quality Checks
 
----
+```sh
+npm run lint
+npm run build
+```
 
-Made with ❤️ and lots of ☕
+## Deploy to Vercel
+
+1. Import this repository into Vercel.
+2. Configure environment variables:
+   - `DISCOGS_KEY`
+   - `DISCOGS_SECRET`
+   - (optional) `VITE_API_BASE_URL`
+   - (optional, if needed) `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`
+3. Deploy.
+
+For same-origin frontend + API on Vercel, keep `VITE_API_BASE_URL` unset.
